@@ -5,23 +5,29 @@ stages:
   - build
   - package
 
+services:
+  - name: cockroachdb/cockroach:v20.1.4
+    entrypoint:
+      - "bash"
+    command:
+      - -c
+      - >
+        /cockroach/cockroach start-single-node --insecure --store=type=mem,size=10% --listen-addr=0.0.0.0:26257 --background --http-addr=0.0.0.0:26258 --log-file-verbosity WARNING;
+        /cockroach/cockroach sql --host 127.0.0.1:26257 --insecure -e 'set sql_safe_updates=false;
+
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=./.m2/repository"
-  DOCKER_IMAGE_NAME: registry.gitlab.com/jgoldverg/transfer-service
+  DOCKER_IMAGE_NAME: registry.gitlab.com/onedatashare/transfer-service
   APP_PORT: 8092
   DOCKER_DRIVER: overlay
   APP_NAME: Transfer Service
   IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
-
-services:
-  - docker:dind
 
 cache:
   paths:
     - ./.m2/repository
   # keep cache across branch
   key: "$CI_BUILD_REF_NAME"
-
 
 before_script:
   - chmod +x mvnw

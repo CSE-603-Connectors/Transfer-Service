@@ -123,6 +123,10 @@
             <version>2.6.0</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.amqp</groupId>
+            <artifactId>spring-rabbit</artifactId>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>

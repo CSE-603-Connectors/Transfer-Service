@@ -6,6 +6,7 @@ import org.onedatashare.transferservice.odstransferservice.model.credential.Endp
 
 
 import java.util.ArrayList;
+import java.util.HashSet;
 
 @Data
 @NoArgsConstructor
@@ -37,6 +38,6 @@ public class TransferJobRequest {
         @NonNull private EndpointCredential credential;
         @NonNull private String credId;
         @NonNull private EntityInfo info;
-        @NonNull private ArrayList<EntityInfo> infoList;
+        @NonNull private HashSet<EntityInfo> infoList;
     }
 }

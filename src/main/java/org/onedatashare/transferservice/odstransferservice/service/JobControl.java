@@ -46,7 +46,9 @@ import org.springframework.transaction.PlatformTransactionManager;
 import javax.sql.DataSource;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @NoArgsConstructor
@@ -114,9 +116,9 @@ public class JobControl extends DefaultBatchConfigurer {
     StepBuilderFactory stepBuilderFactory;
 
 
-    private List<Flow> createConcurrentFlow(List<EntityInfo> infoList, String basePath, String id, String pass) throws MalformedURLException {
+    private Set<Flow> createConcurrentFlow(Set<EntityInfo> infoList, String basePath, String id, String pass) throws MalformedURLException {
         logger.info("CreateConcurrentFlow function");
-        List<Flow> flows = new ArrayList<>();
+        Set<Flow> flows = new HashSet<>();
         for (EntityInfo file : infoList) {
             SimpleStepBuilder<DataChunk, DataChunk> child = stepBuilderFactory.get(file.getPath()).<DataChunk, DataChunk>chunk(1024);
             child.reader(getRightReader(request.getSource().getType())).writer(getRightWriter(request.getDestination().getType()))
@@ -180,7 +182,7 @@ public class JobControl extends DefaultBatchConfigurer {
     @Bean
     public Job concurrentJobDefination() throws MalformedURLException {
         logger.info("createJobDefination function");
-        List<Flow> flows = createConcurrentFlow(request.getSource().getInfoList(),
+        Set<Flow> flows = createConcurrentFlow(request.getSource().getInfoList(),
                 request.getSource().getInfo().getPath(), request.getSource().getCredential().getAccountId(),
                 request.getSource().getCredential().getPassword());
         Flow[] fl = new Flow[flows.size()];

@@ -1,5 +1,6 @@
 package org.onedatashare.transferservice.odstransferservice.consumer;
 
+import com.google.gson.Gson;
 import org.onedatashare.transferservice.odstransferservice.OdsTransferService;
 import org.onedatashare.transferservice.odstransferservice.model.TransferJobRequest;
 import org.onedatashare.transferservice.odstransferservice.service.DatabaseService.CrudService;
@@ -44,14 +45,16 @@ public class MQConsumer {
     JobParamService jobParamService;
 
     @RabbitListener(queues = OdsTransferService.DEFAULT_PARSING_QUEUE)
-    public ResponseEntity<String> consumeDefaultMessage(final TransferJobRequest request) throws Exception {
+    public void consumeDefaultMessage(final MqMessage message) throws Exception {
         logger.info("Received new message from queue.");
+        Gson g = new Gson();
+        TransferJobRequest request = g.fromJson(message.getText(), TransferJobRequest.class);
+
         JobParameters parameters = jobParamService.translate(new JobParametersBuilder(), request);
         jobParamService.setStaticVar(request);
         crudService.insertBeforeTransfer(request);
         jc.setRequest(request);
         jc.setChunkSize(SIXTYFOUR_KB); //64kb.
         asyncJobLauncher.run(jc.concurrentJobDefination(), parameters);
-        return ResponseEntity.status(HttpStatus.OK).body("Your batch job has been submitted with \n ID: " + request.getId());
     }
 }

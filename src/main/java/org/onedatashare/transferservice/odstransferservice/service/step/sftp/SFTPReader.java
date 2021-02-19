@@ -39,14 +39,6 @@ public class SFTPReader<T> extends AbstractItemCountingItemStreamItemReader<Data
 
     Session jschSession = null;
 
-    @BeforeStep
-    public void beforeStep(StepExecution stepExecution) {
-        logger.info("Before step for : " + stepExecution.getStepName());
-        sBasePath = stepExecution.getJobParameters().getString(SOURCE_BASE_PATH);
-        fName = stepExecution.getStepName();
-        filePartitioner.createParts(file.getSize(), stepExecution.getStepName());
-    }
-
     public SFTPReader(AccountEndpointCredential credential, int chunckSize, EntityInfo file) {
         this.file = file;
         this.setExecutionContextName(ClassUtils.getShortName(SFTPReader.class));
@@ -56,15 +48,20 @@ public class SFTPReader<T> extends AbstractItemCountingItemStreamItemReader<Data
         this.filePartitioner = new FilePartitioner();
     }
 
-    @Override
-    public void setResource(Resource resource) {
+    @BeforeStep
+    public void beforeStep(StepExecution stepExecution) {
+        logger.info("Before step for : " + stepExecution.getStepName());
+        sBasePath = stepExecution.getJobParameters().getString(SOURCE_BASE_PATH);
+        fName = stepExecution.getStepName();
+        filePartitioner.createParts(file.getSize(), stepExecution.getStepName());
     }
+
 
     @Override
     protected DataChunk doRead() {
         FilePart filePart = filePartitioner.nextPart();
-        byte[] data = new byte[Long.valueOf(filePart.getSize()).intValue()];
-        int byteRead = -1;
+        int fullSizeOfPart = Long.valueOf(filePart.getSize()).intValue();
+        byte[] data = new byte[fullSizeOfPart];
         try {
             long totalBytes = 0;
             while(totalBytes < filePart.getSize()){
@@ -78,14 +75,11 @@ public class SFTPReader<T> extends AbstractItemCountingItemStreamItemReader<Data
             logger.error("Unable to read from source");
             ex.printStackTrace();
         }
-        if (byteRead == -1) {
-            return null;
-        }
         DataChunk dc = new DataChunk();
         dc.setStartPosition(Long.valueOf(filePart.getStart()).intValue());
         dc.setChunkIdx(filePart.getPartIdx());
-        dc.setSize(byteRead);
-        dc.setData(Arrays.copyOf(data, byteRead));
+        dc.setSize(fullSizeOfPart);
+        dc.setData(Arrays.copyOf(data, fullSizeOfPart));
         dc.setFileName(fName);
         return dc;
     }
@@ -108,11 +102,6 @@ public class SFTPReader<T> extends AbstractItemCountingItemStreamItemReader<Data
             logger.error("Not able to close the input Stream");
             ex.printStackTrace();
         }
-    }
-
-    @Override
-    public void afterPropertiesSet() {
-
     }
 
     @SneakyThrows
@@ -143,4 +132,10 @@ public class SFTPReader<T> extends AbstractItemCountingItemStreamItemReader<Data
             e.printStackTrace();
         }
     }
+
+    @Override
+    public void afterPropertiesSet() {}
+    @Override
+    public void setResource(Resource resource) {}
+
 }

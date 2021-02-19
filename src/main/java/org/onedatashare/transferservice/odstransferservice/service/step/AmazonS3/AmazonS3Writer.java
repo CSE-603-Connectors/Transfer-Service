@@ -44,7 +44,7 @@ public class AmazonS3Writer implements ItemWriter<DataChunk> {
     long currentFileSize;
 
     public AmazonS3Writer(AccountEndpointCredential destCredential, EntityInfo fileInfo){
-        this.fileName = "";
+        this.fileName = fileInfo.getId();
         this.fileInfo = fileInfo;
         this.destCredential = destCredential;
         this.clientHashMap = new HashMap<>();
@@ -83,7 +83,7 @@ public class AmazonS3Writer implements ItemWriter<DataChunk> {
                 this.metaData.prepareMetaData(client, this.s3URI.getBucket(), this.s3URI.getKey());
             }
             for(DataChunk currentChunk : items){
-                logger.info("The current chunk is {}, with size {} and the start Position is {}", currentChunk.getChunkIdx(),currentChunk.getSize(), currentChunk.getStartPosition());
+                logger.info("The current chunk is {}, with size {} and the start Position is {}", currentChunk.getChunkIdx(), currentChunk.getSize(), currentChunk.getStartPosition());
                 if(currentChunk.getStartPosition() + currentChunk.getSize() == this.currentFileSize){
                     logger.info("At the last chunk of the transfer {}", currentChunk.getChunkIdx());
                     this.metaData.addUploadPart(client.uploadPart(ODSUtility.makePartRequest(currentChunk, this.s3URI.getBucket(), this.metaData.getInitiateMultipartUploadResult().getUploadId(), this.s3URI.getKey(), true)));

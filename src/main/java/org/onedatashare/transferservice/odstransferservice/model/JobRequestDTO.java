@@ -7,11 +7,19 @@ import lombok.NonNull;
 @NoArgsConstructor
 @AllArgsConstructor
 public class JobRequestDTO {
+    private String jobId;
     private String jobName;
     private long instanceId;
     private String stepName;
-    @NonNull
     private String isDirectory;
+
+    public String getJobId() {
+        return jobId;
+    }
+
+    public void setJobId(String jobId) {
+        this.jobId = jobId;
+    }
 
     public String getJobName() {
         return jobName;

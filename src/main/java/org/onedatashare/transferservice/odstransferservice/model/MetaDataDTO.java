@@ -15,7 +15,7 @@ import javax.persistence.*;
 public class MetaDataDTO {
     @Id
     //Job ID
-    private String id;
+    private long id;
     //Source EndPoint
     private String source;
     //Destination EndPoint
@@ -27,11 +27,11 @@ public class MetaDataDTO {
     //Chunk Size during transfer
     private int chunks;
 
-    public String getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(long id) {
         this.id = id;
     }
 

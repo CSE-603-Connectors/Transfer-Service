@@ -1,6 +1,8 @@
 package org.onedatashare.transferservice.odstransferservice.controller;
 
+import org.onedatashare.transferservice.odstransferservice.DataRepository.MetaDataRepository;
 import org.onedatashare.transferservice.odstransferservice.model.JobRequestDTO;
+import org.onedatashare.transferservice.odstransferservice.model.MetaDataDTO;
 import org.onedatashare.transferservice.odstransferservice.service.DatabaseService.JobQueryService;
 import org.springframework.batch.core.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,12 +14,16 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/query")
 public class DatabaseController {
     @Autowired
     JobQueryService jobQueryImplementation;
+    @Autowired
+    MetaDataRepository metaDataRepository;
     @RequestMapping(value = "/job_status", method = RequestMethod.POST)
     public ResponseEntity<String> getStatus(@RequestBody JobRequestDTO jobRequestDTO) {
         String jobName = jobRequestDTO.getJobName();
@@ -93,4 +99,26 @@ public class DatabaseController {
         }
         return ResponseEntity.status(HttpStatus.OK).body(executionExitStatus.toString());
     }
+
+    @RequestMapping(value = "/mq_job_id_list", method = RequestMethod.POST)
+    public List<MetaDataDTO> getMqJobIdList() {
+        return (List<MetaDataDTO>) metaDataRepository.findAll();
+    }
+
+    @RequestMapping(value = "/search_source_by_mq_id",method = RequestMethod.POST)
+    public String getSource(@RequestBody JobRequestDTO jobRequestDTO){
+        long id = (long) Integer.parseInt(jobRequestDTO.getJobId());
+        Optional<MetaDataDTO> result = metaDataRepository.findById(id);
+        String source = result.get().getSource();
+        return source;
+    }
+
+    @RequestMapping(value = "/search_destination_by_mq_id",method = RequestMethod.POST)
+    public String getDestination(@RequestBody JobRequestDTO jobRequestDTO){
+        long id = (long) Integer.parseInt(jobRequestDTO.getJobId());
+        Optional<MetaDataDTO> result = metaDataRepository.findById(id);
+        String source = result.get().getDestination();
+        return source;
+    }
 }
+

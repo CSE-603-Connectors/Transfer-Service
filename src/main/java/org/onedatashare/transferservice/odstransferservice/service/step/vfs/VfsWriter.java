@@ -35,7 +35,8 @@ public class VfsWriter implements ItemWriter<DataChunk> {
     public void beforeStep(StepExecution stepExecution) {
         this.fileName = stepExecution.getStepName();
         this.destinationPath = stepExecution.getJobParameters().getString(DEST_BASE_PATH);
-        this.filePath = Paths.get(this.destinationPath + this.fileName);
+        String[] filePaths = fileName.split("/");
+        this.filePath = Paths.get(this.destinationPath, filePaths[filePaths.length-1]);
         prepareFile();
     }
 
@@ -50,11 +51,10 @@ public class VfsWriter implements ItemWriter<DataChunk> {
         }
     }
 
-    public FileChannel getChannel(String fileName) throws IOException {
+    public FileChannel getChannel(String fileName) {
         if (this.stepDrain.containsKey(fileName)) {
             return this.stepDrain.get(fileName);
         } else {
-            logger.info("creating file : " + fileName);
             FileChannel channel = null;
             try {
                 channel = FileChannel.open(this.filePath, StandardOpenOption.WRITE);
@@ -80,14 +80,13 @@ public class VfsWriter implements ItemWriter<DataChunk> {
 
     @Override
     public void write(List<? extends DataChunk> items) throws Exception {
-        logger.info(Thread.currentThread().getName());
         for (int i = 0; i < items.size(); i++) {
             DataChunk chunk = items.get(i);
             FileChannel channel = getChannel(chunk.getFileName());
             int bytesWritten = channel.write(ByteBuffer.wrap(chunk.getData()), chunk.getStartPosition());
-            logger.info("Wrote the amount of bytes: " + String.valueOf(bytesWritten));
+            logger.info("Wrote: " + chunk.toString());
             if (chunk.getSize() != bytesWritten)
-                logger.info("Wrote " + bytesWritten + " but we should have written " + chunk.getSize());
+                logger.error("Wrote " + bytesWritten + " but we should have written " + chunk.getSize());
         }
     }
 }

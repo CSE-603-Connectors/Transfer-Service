@@ -27,6 +27,7 @@ public class SFTPWriter implements ItemWriter<DataChunk> {
     AccountEndpointCredential destCred;
     HashMap<String, ChannelSftp> fileToChannel;
     JSch jsch;
+
     public SFTPWriter(AccountEndpointCredential destCred) {
         fileToChannel = new HashMap<>();
         this.destCred = destCred;
@@ -54,6 +55,7 @@ public class SFTPWriter implements ItemWriter<DataChunk> {
             assert channelSftp != null;
             if(!cdIntoDir(channelSftp, dBasePath)){
                 mkdir(channelSftp, dBasePath);
+                cdIntoDir(channelSftp, dBasePath);
             }
             if(fileToChannel.containsKey(stepName)){
                 fileToChannel.remove(stepName);
@@ -71,8 +73,8 @@ public class SFTPWriter implements ItemWriter<DataChunk> {
         } catch (SftpException sftpException) {
             logger.warn("Could not cd into the directory we might have made moohoo");
             sftpException.printStackTrace();
+            return false;
         }
-        return false;
     }
 
     public boolean mkdir(ChannelSftp channelSftp, String basePath){
@@ -82,8 +84,8 @@ public class SFTPWriter implements ItemWriter<DataChunk> {
         } catch (SftpException sftpException) {
             logger.warn("Could not make the directory you gave us boohoo");
             sftpException.printStackTrace();
+            return false;
         }
-        return false;
     }
 
     public OutputStream getStream(String stepName) {

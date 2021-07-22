@@ -25,7 +25,7 @@ import java.nio.channels.FileChannel;
 
 import static org.onedatashare.transferservice.odstransferservice.constant.ODSConstants.*;
 
-public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChunk> implements ResourceAwareItemReaderItemStream<DataChunk>, InitializingBean {
+public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChunk> {
 
     FileChannel sink;
     Logger logger = LoggerFactory.getLogger(VfsReader.class);
@@ -58,13 +58,10 @@ public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChun
     }
 
     @Override
-    public void setResource(Resource resource){}
-
-    @Override
     protected DataChunk doRead() {
         FilePart chunkParameters = this.filePartitioner.nextPart();
         if (chunkParameters == null) return null;// done as there are no more FileParts in the queue
-        logger.info("currently reading {}", chunkParameters.getPartIdx());
+        logger.info("Reading {}", chunkParameters.toString());
         ByteBuffer buffer = ByteBuffer.allocate(this.chunkSize);
         int totalBytes = 0;
         while (totalBytes < chunkParameters.getSize()) {
@@ -108,7 +105,4 @@ public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChun
         }
     }
 
-    @Override
-    public void afterPropertiesSet() {
-    }
 }

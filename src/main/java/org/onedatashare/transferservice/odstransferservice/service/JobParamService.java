@@ -19,7 +19,7 @@ public class JobParamService {
     Logger logger = LoggerFactory.getLogger(JobParamService.class);
 
     public JobParameters translate(JobParametersBuilder builder, TransferJobRequest request) {
-        logger.info("Setting job Parameters");
+        logger.info("Setting job Parameters and the TransferJobRequest we have is: " + request.toString());
         builder.addLong(TIME, System.currentTimeMillis());
         builder.addString(OWNER_ID, request.getOwnerId());
         builder.addString(PRIORITY, String.valueOf(request.getPriority()));

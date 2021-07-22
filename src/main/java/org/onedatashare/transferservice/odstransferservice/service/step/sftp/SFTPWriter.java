@@ -67,13 +67,11 @@ public class SFTPWriter implements ItemWriter<DataChunk> {
     }
 
     public boolean cdIntoDir(ChannelSftp channelSftp, String directory){
-        logger.info(directory);
         try {
             channelSftp.cd(directory);
             return true;
         } catch (SftpException sftpException) {
             logger.warn("Could not cd into the directory we might have made moohoo");
-            sftpException.printStackTrace();
             return false;
         }
     }
@@ -84,7 +82,6 @@ public class SFTPWriter implements ItemWriter<DataChunk> {
             return true;
         } catch (SftpException sftpException) {
             logger.warn("Could not make the directory you gave us boohoo");
-            sftpException.printStackTrace();
             return false;
         }
     }

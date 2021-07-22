@@ -67,6 +67,7 @@ public class SFTPWriter implements ItemWriter<DataChunk> {
     }
 
     public boolean cdIntoDir(ChannelSftp channelSftp, String directory){
+        logger.info(directory);
         try {
             channelSftp.cd(directory);
             return true;

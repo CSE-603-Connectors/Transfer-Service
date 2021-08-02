@@ -16,13 +16,10 @@ import org.springframework.batch.core.annotation.BeforeStep;
 import org.springframework.batch.item.file.ResourceAwareItemReaderItemStream;
 import org.springframework.batch.item.support.AbstractItemCountingItemStreamItemReader;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.util.ClassUtils;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 
 import static org.onedatashare.transferservice.odstransferservice.constant.ODSConstants.*;
 

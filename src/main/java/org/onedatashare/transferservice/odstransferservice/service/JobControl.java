@@ -111,7 +111,7 @@ public class JobControl extends DefaultBatchConfigurer {
         return factory.getObject();
     }
 
-    private List<Flow> createConcurrentFlow(List<EntityInfo> infoList, String basePath, String id) throws MalformedURLException {
+    private List<Flow> createConcurrentFlow(List<EntityInfo> infoList, String basePath, String id) {
         logger.info("CreateConcurrentFlow function");
         List<Flow> flows = new ArrayList<>();
         for (EntityInfo file : infoList) {
@@ -136,14 +136,19 @@ public class JobControl extends DefaultBatchConfigurer {
     protected AbstractItemCountingItemStreamItemReader<DataChunk> getRightReader(EndpointType type, EntityInfo fileInfo) {
         switch (type) {
             case vfs:
+                logger.info("Using "+type.toString()+"Reader");
                 return new VfsReader(request.getSource().getVfsSourceCredential(), fileInfo, request.getChunkSize());
             case sftp:
+                logger.info("Using "+type.toString()+"Reader");
                 return new SFTPReader(request.getSource().getVfsSourceCredential(), request.getChunkSize(), fileInfo);
             case ftp:
+                logger.info("Using "+type.toString()+"Reader");
                 return new FTPReader(request.getSource().getVfsSourceCredential(), fileInfo, request.getChunkSize());
             case s3:
+                logger.info("Using "+type.toString()+"Reader");
                 return new AmazonS3Reader(request.getSource().getVfsSourceCredential(), request.getChunkSize());
             case box:
+                logger.info("Using "+type.toString()+"Reader");
                 return new BoxReader(request.getSource().getOauthSourceCredential(), request.getChunkSize(), fileInfo);
         }
         return null;
@@ -152,14 +157,19 @@ public class JobControl extends DefaultBatchConfigurer {
     protected ItemWriter<DataChunk> getRightWriter(EndpointType type, EntityInfo fileInfo) {
         switch (type) {
             case vfs:
+                logger.info("Using "+type.toString()+"Writer");
                 return new VfsWriter(request.getDestination().getVfsDestCredential());
             case sftp:
+                logger.info("Using "+type.toString()+"Writer");
                 return new SFTPWriter(request.getDestination().getVfsDestCredential());
             case ftp:
+                logger.info("Using "+type.toString()+"Writer");
                 return new FTPWriter(request.getDestination().getVfsDestCredential());
             case s3:
+                logger.info("Using "+type.toString()+"Writer");
                 return new AmazonS3Writer(request.getDestination().getVfsDestCredential(), fileInfo);
             case box:
+                logger.info("Using "+type.toString()+"Writer");
                 return new BoxWriter(request.getDestination().getOauthDestCredential(), fileInfo, request.getChunkSize());
         }
         return null;
@@ -167,7 +177,7 @@ public class JobControl extends DefaultBatchConfigurer {
 
     @Lazy
     @Bean
-    public Job concurrentJobDefinition() throws MalformedURLException {
+    public Job concurrentJobDefinition() {
         List<Flow> flows = createConcurrentFlow(request.getSource().getInfoList(), request.getSource().getParentInfo().getPath(), request.getJobId());
         Flow[] fl = new Flow[flows.size()];
 

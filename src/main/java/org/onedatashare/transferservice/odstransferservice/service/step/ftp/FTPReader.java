@@ -6,8 +6,6 @@ import org.apache.commons.vfs2.FileSystemOptions;
 import org.apache.commons.vfs2.VFS;
 import org.apache.commons.vfs2.auth.StaticUserAuthenticator;
 import org.apache.commons.vfs2.impl.DefaultFileSystemConfigBuilder;
-import org.apache.commons.vfs2.provider.ftp.FtpFileSystemConfigBuilder;
-import org.apache.commons.vfs2.provider.ftp.FtpFileType;
 import org.onedatashare.transferservice.odstransferservice.model.DataChunk;
 import org.onedatashare.transferservice.odstransferservice.model.EntityInfo;
 import org.onedatashare.transferservice.odstransferservice.model.FilePart;
@@ -19,17 +17,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.annotation.AfterStep;
 import org.springframework.batch.core.annotation.BeforeStep;
-import org.springframework.batch.item.file.ResourceAwareItemReaderItemStream;
 import org.springframework.batch.item.support.AbstractItemCountingItemStreamItemReader;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.core.io.Resource;
 import org.springframework.util.ClassUtils;
 
 import java.io.InputStream;
 
 import static org.onedatashare.transferservice.odstransferservice.constant.ODSConstants.*;
 
-public class FTPReader<T> extends AbstractItemCountingItemStreamItemReader<DataChunk> implements ResourceAwareItemReaderItemStream<DataChunk>, InitializingBean {
+public class FTPReader<T> extends AbstractItemCountingItemStreamItemReader<DataChunk>{
 
     Logger logger = LoggerFactory.getLogger(FTPReader.class);
     InputStream inputStream;
@@ -43,7 +38,7 @@ public class FTPReader<T> extends AbstractItemCountingItemStreamItemReader<DataC
     FilePartitioner partitioner;
     EntityInfo fileInfo;
 
-    public FTPReader(AccountEndpointCredential credential, EntityInfo file ,int chunckSize) {
+    public FTPReader(AccountEndpointCredential credential, EntityInfo file, int chunckSize) {
         this.chunckSize = chunckSize;
         this.sourceCred = credential;
         this.partitioner = new FilePartitioner(this.chunckSize);
@@ -73,10 +68,6 @@ public class FTPReader<T> extends AbstractItemCountingItemStreamItemReader<DataC
         this.setExecutionContextName(name);
     }
 
-    @Override
-    public void setResource(Resource resource) {
-    }
-
     @SneakyThrows
     @Override
     protected DataChunk doRead() {
@@ -99,23 +90,18 @@ public class FTPReader<T> extends AbstractItemCountingItemStreamItemReader<DataC
 
     @Override
     protected void doOpen() {
-        logger.info("Insided doOpen");
+        logger.info("Opening the resource " + fName);
         clientCreateSourceStream(sBasePath, fName);
     }
 
     @Override
     protected void doClose() {
-        logger.info("Inside doClose");
         try {
             if (inputStream != null) inputStream.close();
         } catch (Exception ex) {
             logger.error("Not able to close the input Stream");
             ex.printStackTrace();
         }
-    }
-
-    @Override
-    public void afterPropertiesSet() {
     }
 
     @SneakyThrows

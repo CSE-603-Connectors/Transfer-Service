@@ -33,5 +33,7 @@ public class ODSConstants {
     public static final int SIXTYFOUR_KB=64000;
     public static final int TRANSFER_SLICE_SIZE = 1<<20;
     public static final int FIVE_MB = 5 * 1024 * 1024;
+    public final static String APPROVAL_PROMPT = "force";
+    public final static String ACCESS_TYPE = "offline";
 
 }

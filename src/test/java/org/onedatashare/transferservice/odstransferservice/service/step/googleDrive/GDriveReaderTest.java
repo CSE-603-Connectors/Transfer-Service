@@ -61,7 +61,7 @@ public class GDriveReaderTest extends TestCase implements ResourceAwareItemReade
 
     public void testCreateClient() throws Exception {
         // Read test
-        testObjRead = new GDriveReader(createTestCredentials());
+        testObjRead = null;
 
         Assert.isTrue(testObjRead != null, "The client is null somehow");
 
@@ -84,7 +84,6 @@ public class GDriveReaderTest extends TestCase implements ResourceAwareItemReade
 
 
         // Upload test
-        testObjWrite = new GDriveWriter(createTestCredentials(), createfileInfo());
 
         Assert.isTrue(testObjWrite != null, "The client is null somehow");
 

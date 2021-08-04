@@ -4,6 +4,8 @@ import com.amazonaws.services.s3.model.UploadPartRequest;
 import edu.emory.mathcs.backport.java.util.Arrays;
 import org.onedatashare.transferservice.odstransferservice.Enum.EndpointType;
 import org.onedatashare.transferservice.odstransferservice.model.DataChunk;
+import org.onedatashare.transferservice.odstransferservice.model.FilePart;
+import org.springframework.http.HttpRange;
 
 import java.io.ByteArrayInputStream;
 import java.util.HashSet;
@@ -40,6 +42,20 @@ public class ODSUtility {
         uploadPartRequest.setPartNumber(dataChunk.getChunkIdx()+1); //by default we start from chunks 0-N but AWS SDK must have 1-10000 so we just add 1
         uploadPartRequest.setPartSize(dataChunk.getSize());
         return uploadPartRequest;
+    }
+
+    public static HttpRange filePartToRange(FilePart part){
+        return new HttpRange() {
+            @Override
+            public long getRangeStart(long length) {
+                return part.getStart();
+            }
+
+            @Override
+            public long getRangeEnd(long length) {
+                return part.getEnd();
+            }
+        };
     }
 
     public static final EndpointType[] SEEKABLE_PROTOCOLS = new EndpointType[]{EndpointType.s3, EndpointType.vfs};

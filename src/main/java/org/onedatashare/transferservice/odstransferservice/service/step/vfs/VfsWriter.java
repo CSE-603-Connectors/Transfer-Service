@@ -22,7 +22,6 @@ public class VfsWriter implements ItemWriter<DataChunk> {
     Logger logger = LoggerFactory.getLogger(VfsWriter.class);
     AccountEndpointCredential destCredential;
     HashMap<String, FileChannel> stepDrain;
-    String fileName;
     String destinationPath;
     Path filePath;
 
@@ -33,27 +32,27 @@ public class VfsWriter implements ItemWriter<DataChunk> {
 
     @BeforeStep
     public void beforeStep(StepExecution stepExecution) {
-        this.fileName = stepExecution.getStepName();
         this.destinationPath = stepExecution.getJobParameters().getString(DEST_BASE_PATH);
-        this.filePath = Paths.get(this.destinationPath + this.fileName);
-        prepareFile();
     }
 
     @AfterStep
     public void afterStep() {
-        try {
-            if(this.stepDrain.containsKey(this.fileName)){
-                this.stepDrain.get(this.fileName).close();
+        for(String fileKey : this.stepDrain.keySet()){
+            try{
+                this.stepDrain.get(fileKey).close();
+            } catch (IOException e){
+                logger.error("Tried to close the FileChannel for file {}", fileKey);
+                e.printStackTrace();
             }
-        } catch (IOException exception) {
-            exception.printStackTrace();
         }
     }
 
-    public FileChannel getChannel(String fileName) throws IOException {
+    public FileChannel getChannel(String fileName, String basePath) {
         if (this.stepDrain.containsKey(fileName)) {
             return this.stepDrain.get(fileName);
         } else {
+            this.filePath = Paths.get(this.destinationPath + basePath + fileName);
+            prepareFile(this.filePath);
             logger.info("creating file : " + fileName);
             FileChannel channel = null;
             try {
@@ -67,10 +66,10 @@ public class VfsWriter implements ItemWriter<DataChunk> {
         }
     }
 
-    public void prepareFile() {
+    public void prepareFile(Path pathToCreate) {
         try {
-            Files.createDirectories(this.filePath.getParent());
-            Files.createFile(this.filePath);
+            Files.createDirectories(pathToCreate);
+            Files.createFile(pathToCreate);
         }catch (FileAlreadyExistsException fileAlreadyExistsException){
             logger.error("Already have the file with this path \t" + this.filePath.toString());
         } catch (IOException e) {
@@ -80,14 +79,12 @@ public class VfsWriter implements ItemWriter<DataChunk> {
 
     @Override
     public void write(List<? extends DataChunk> items) throws Exception {
-        logger.info(Thread.currentThread().getName());
-        for (int i = 0; i < items.size(); i++) {
-            DataChunk chunk = items.get(i);
-            FileChannel channel = getChannel(chunk.getFileName());
+        for (DataChunk chunk : items) {
+            FileChannel channel = getChannel(chunk.getFileName(), chunk.getBasePath());
             int bytesWritten = channel.write(ByteBuffer.wrap(chunk.getData()), chunk.getStartPosition());
-            logger.info("Wrote the amount of bytes: " + String.valueOf(bytesWritten));
+            logger.info("Wrote the amount of bytes: {}", bytesWritten);
             if (chunk.getSize() != bytesWritten)
-                logger.info("Wrote " + bytesWritten + " but we should have written " + chunk.getSize());
+                logger.info("Wrote {} but we should have written {}", bytesWritten, chunk.getSize());
         }
     }
 }

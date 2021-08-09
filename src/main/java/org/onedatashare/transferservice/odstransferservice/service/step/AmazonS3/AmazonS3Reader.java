@@ -14,13 +14,9 @@ import org.onedatashare.transferservice.odstransferservice.utility.S3Utility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.StepExecution;
-import org.springframework.batch.core.annotation.AfterStep;
 import org.springframework.batch.core.annotation.BeforeStep;
 import org.springframework.batch.item.support.AbstractItemCountingItemStreamItemReader;
 import org.springframework.util.ClassUtils;
-
-
-import static org.onedatashare.transferservice.odstransferservice.constant.ODSConstants.SIXTYFOUR_KB;
 
 public class AmazonS3Reader extends AbstractItemCountingItemStreamItemReader<DataChunk> {
 
@@ -63,14 +59,13 @@ public class AmazonS3Reader extends AbstractItemCountingItemStreamItemReader<Dat
     protected DataChunk doRead() throws Exception {
         FilePart part = partitioner.nextPart();
         if (part == null) return null;
-        logger.info("Current Part:-"+part.toString());
+        logger.info("Current Part: {}", part.toString());
         S3Object partOfFile = this.s3Client.getObject(this.getSkeleton.withRange(part.getStart(), part.getEnd()));//this is inclusive or on both start and end so take one off so there is no colision
         byte[] dataSet = new byte[part.getSize()];
         long totalBytes = 0;
         S3ObjectInputStream stream = partOfFile.getObjectContent();
         while (totalBytes < part.getSize()) {
-            int bytesRead = 0;
-            bytesRead += stream.read(dataSet, Long.valueOf(totalBytes).intValue(), Long.valueOf(part.getSize()).intValue());
+            int bytesRead = stream.read(dataSet, Long.valueOf(totalBytes).intValue(), Long.valueOf(part.getSize()).intValue());
             if (bytesRead == -1) return null;
             totalBytes += bytesRead;
         }

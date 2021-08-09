@@ -33,35 +33,27 @@ public class FTPReader<T> extends AbstractItemCountingItemStreamItemReader<DataC
     AccountEndpointCredential sourceCred;
     FileObject foSrc;
     int chunckSize;
-    int chunksCreated;
-    long fileIdx;
     FilePartitioner partitioner;
     EntityInfo fileInfo;
 
-    public FTPReader(AccountEndpointCredential credential, EntityInfo file ,int chunckSize) {
+    public FTPReader(AccountEndpointCredential credential, EntityInfo file, int chunckSize) {
         this.chunckSize = chunckSize;
         this.sourceCred = credential;
         this.partitioner = new FilePartitioner(this.chunckSize);
-        fileInfo = file;
+        this.fileInfo = file;
         this.setName(ClassUtils.getShortName(FTPReader.class));
     }
 
 
     @BeforeStep
     public void beforeStep(StepExecution stepExecution) {
-        logger.info("Before step for : " + stepExecution.getStepName());
         sBasePath = stepExecution.getJobParameters().getString(SOURCE_BASE_PATH);
-        fName = stepExecution.getStepName();
-        partitioner.createParts(this.fileInfo.getSize(), fName);
-        chunksCreated = 0;
-        fileIdx = 0L;
+        fName = this.fileInfo.getId();
         this.partitioner.createParts(this.fileInfo.getSize(), this.fName);
     }
 
     @AfterStep
     public void afterStep(){
-        this.fileIdx = 0;
-        this.chunksCreated = 0;
     }
 
     public void setName(String name) {
@@ -81,23 +73,19 @@ public class FTPReader<T> extends AbstractItemCountingItemStreamItemReader<DataC
             if (byteRead == -1) return null;
             totalBytes += byteRead;
         }
-        DataChunk chunk = ODSUtility.makeChunk(totalBytes, data, this.fileIdx, this.chunksCreated, this.fName);
-        this.fileIdx += totalBytes;
-        this.chunksCreated++;
-        logger.info(chunk.toString());
+        DataChunk chunk = ODSUtility.makeChunk(totalBytes, data, filePart.getStart(), (int) filePart.getPartIdx(), this.fileInfo.getId(), this.fileInfo.getPath());
+        logger.info("Create DataChunk: {}",chunk.toString());
         return chunk;
     }
 
 
     @Override
     protected void doOpen() {
-        logger.info("Insided doOpen");
-        clientCreateSourceStream(sBasePath, fName);
+        clientCreateSourceStream(sBasePath, this.fileInfo.getPath());
     }
 
     @Override
     protected void doClose() {
-        logger.info("Inside doClose");
         try {
             if (inputStream != null) inputStream.close();
         } catch (Exception ex) {
@@ -107,18 +95,17 @@ public class FTPReader<T> extends AbstractItemCountingItemStreamItemReader<DataC
     }
 
     @SneakyThrows
-    public void clientCreateSourceStream(String basePath, String fName) {
-        logger.info("Inside clientCreateSourceStream for : " + fName + " ");
-
+    public void clientCreateSourceStream(String basePath, String filePath) {
+        logger.info("Creating FTP Source Connection with basePath: {} and the fileName {}", basePath, filePath);
         //***GETTING STREAM USING APACHE COMMONS VFS2
         FileSystemOptions opts = FtpUtility.generateOpts();
         StaticUserAuthenticator auth = new StaticUserAuthenticator(null, this.sourceCred.getUsername(), this.sourceCred.getSecret());
         DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth);
         String wholeThing;
         if(this.sourceCred.getUri().contains("ftp://")){
-            wholeThing = this.sourceCred.getUri() + "/" + basePath + fName;
+            wholeThing = this.sourceCred.getUri() + "/" + basePath + filePath;
         }else{
-            wholeThing = "ftp://" + this.sourceCred.getUri() + "/" + basePath + fName;
+            wholeThing = "ftp://" + this.sourceCred.getUri() + "/" + basePath + filePath;
         }
         this.foSrc = VFS.getManager().resolveFile(wholeThing, opts);
         this.inputStream = foSrc.getContent().getInputStream();

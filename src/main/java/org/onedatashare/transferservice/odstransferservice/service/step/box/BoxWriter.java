@@ -64,7 +64,7 @@ public class BoxWriter implements ItemWriter<DataChunk> {
     }
 
     @Override
-    public void write(List<? extends DataChunk> items) throws Exception {
+    public void write(List<? extends DataChunk> items) {
         BoxFileUploadSession session = this.fileMap.get(this.fileInfo.getId());
         for(DataChunk dataChunk : items){
             BoxFileUploadSessionPart boxFileUploadSessionPart = session.uploadPart(dataChunk.getData(), dataChunk.getStartPosition(), Long.valueOf(dataChunk.getSize()).intValue(), this.fileInfo.getSize());

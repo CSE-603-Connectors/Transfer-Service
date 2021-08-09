@@ -29,6 +29,16 @@ public class ODSUtility {
         return dataChunk;
     }
 
+    public static DataChunk makeChunk(long size, byte[] data, long startPosition, int chunkIdx, String fileName, String basePath) {
+        DataChunk dataChunk = new DataChunk();
+        dataChunk.setStartPosition(startPosition);
+        dataChunk.setChunkIdx(chunkIdx);
+        dataChunk.setFileName(fileName);
+        dataChunk.setData(data);
+        dataChunk.setSize(size);
+        dataChunk.setBasePath(basePath);
+        return dataChunk;
+    }
 
     public static UploadPartRequest makePartRequest(DataChunk dataChunk, String bucketName, String uploadId, String key, boolean lastPart) {
         UploadPartRequest uploadPartRequest = new UploadPartRequest();

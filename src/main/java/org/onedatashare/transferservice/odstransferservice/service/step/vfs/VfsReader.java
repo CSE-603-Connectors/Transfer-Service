@@ -27,7 +27,7 @@ import static org.onedatashare.transferservice.odstransferservice.constant.ODSCo
 
 public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChunk> implements ResourceAwareItemReaderItemStream<DataChunk>, InitializingBean {
 
-    FileChannel sink;
+    FileChannel tap;
     Logger logger = LoggerFactory.getLogger(VfsReader.class);
     long fsize;
     int chunkSize;
@@ -52,7 +52,7 @@ public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChun
         logger.info("Before step for : " + stepExecution.getStepName());
         JobParameters params = stepExecution.getJobExecution().getJobParameters();
         this.sBasePath = params.getString(SOURCE_BASE_PATH);
-        this.fileName = stepExecution.getStepName();
+        this.fileName = this.fileInfo.getId();
         this.fsize = this.fileInfo.getSize();
         this.filePartitioner.createParts(fsize, fileName);
     }
@@ -64,13 +64,13 @@ public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChun
     protected DataChunk doRead() {
         FilePart chunkParameters = this.filePartitioner.nextPart();
         if (chunkParameters == null) return null;// done as there are no more FileParts in the queue
-        logger.info("currently reading {}", chunkParameters.getPartIdx());
-        ByteBuffer buffer = ByteBuffer.allocate(this.chunkSize);
+        logger.info("currently reading {}", chunkParameters.toString());
+        ByteBuffer buffer = ByteBuffer.allocate(chunkParameters.getSize());
         int totalBytes = 0;
         while (totalBytes < chunkParameters.getSize()) {
             int bytesRead = 0;
             try {
-                bytesRead = this.sink.read(buffer, chunkParameters.getStart()+totalBytes);
+                bytesRead = this.tap.read(buffer, chunkParameters.getStart()+totalBytes);
             } catch (IOException ex) {
                 logger.error("Unable to read from source");
                 ex.printStackTrace();
@@ -82,7 +82,7 @@ public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChun
         byte[] data = new byte[chunkParameters.getSize()];
         buffer.get(data, 0, totalBytes);
         buffer.clear();
-        return ODSUtility.makeChunk(totalBytes, data, chunkParameters.getStart(), Long.valueOf(chunkParameters.getPartIdx()).intValue(), this.fileName);
+        return ODSUtility.makeChunk(totalBytes, data, chunkParameters.getStart(), Long.valueOf(chunkParameters.getPartIdx()).intValue(), this.fileName, this.fileInfo.getPath());
     }
 
     @Override
@@ -94,14 +94,14 @@ public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChun
             logger.error("Path not found : " + this.sBasePath + this.fileName);
             e.printStackTrace();
         }
-        this.sink = this.inputStream.getChannel();
+        this.tap = this.inputStream.getChannel();
     }
 
     @Override
     protected void doClose() {
         try {
             if (inputStream != null) inputStream.close();
-            if(sink.isOpen()) sink.close();
+            if(tap.isOpen()) tap.close();
         } catch (Exception ex) {
             logger.error("Not able to close the input Stream");
             ex.printStackTrace();

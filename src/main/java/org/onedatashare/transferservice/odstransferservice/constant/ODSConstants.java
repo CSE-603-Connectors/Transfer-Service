@@ -21,6 +21,8 @@ public class ODSConstants {
     public static final String DESTINATION_ACCOUNT_ID_PASS = "destinationAccountIdPass";
     public static final String SOURCE_BASE_PATH = "sourceBasePath";
     public static final String DEST_BASE_PATH = "destBasePath";
+    public static final String DEST_BASE_ID = "destBaseId";
+    public static final String SOURCE_BASE_ID="sourceBaseId";
     public static final String SOURCE = "source";
     public static final String SOURCE_CREDENTIAL_ID = "sourceCredential";
     public static final String DEST_CREDENTIAL_ID = "destCredential";
@@ -33,5 +35,6 @@ public class ODSConstants {
     public static final int SIXTYFOUR_KB=64000;
     public static final int TRANSFER_SLICE_SIZE = 1<<20;
     public static final int FIVE_MB = 5 * 1024 * 1024;
+    public static final int FIFTY_MB = 52428800;
 
 }

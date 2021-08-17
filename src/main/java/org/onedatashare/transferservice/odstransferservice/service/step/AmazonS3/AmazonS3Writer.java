@@ -8,7 +8,7 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.AmazonS3URI;
 import com.amazonaws.services.s3.model.*;
 import org.onedatashare.transferservice.odstransferservice.model.AWSMultiPartMetaData;
-import org.onedatashare.transferservice.odstransferservice.model.AWSSinglePutRequestMetaData;
+import org.onedatashare.transferservice.odstransferservice.model.SinglePutReqeust;
 import org.onedatashare.transferservice.odstransferservice.model.DataChunk;
 import org.onedatashare.transferservice.odstransferservice.model.EntityInfo;
 import org.onedatashare.transferservice.odstransferservice.model.credential.AccountEndpointCredential;
@@ -34,7 +34,7 @@ public class AmazonS3Writer implements ItemWriter<DataChunk> {
     AmazonS3URI s3URI;
     HashMap<String, AmazonS3> clientHashMap;//Must use multiple S3 clients b/c changing the region is not thread safe and will create race conditions as per aws java docs in AmazonS3.java
     private AWSMultiPartMetaData metaData;
-    private AWSSinglePutRequestMetaData singlePutRequestMetaData;
+    private SinglePutReqeust singlePutRequestMetaData;
     boolean multipartUpload;
     String fileName;
     EntityInfo fileInfo;
@@ -59,7 +59,7 @@ public class AmazonS3Writer implements ItemWriter<DataChunk> {
         AmazonS3 client = createClientWithCreds();
         if(this.currentFileSize < FIVE_MB){
             this.multipartUpload = false;
-            this.singlePutRequestMetaData = new AWSSinglePutRequestMetaData();
+            this.singlePutRequestMetaData = new SinglePutReqeust();
         }else{
             this.multipartUpload = true;
             this.metaData = new AWSMultiPartMetaData();

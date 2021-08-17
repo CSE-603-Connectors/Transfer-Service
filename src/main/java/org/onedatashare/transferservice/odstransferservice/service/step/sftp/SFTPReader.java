@@ -20,7 +20,7 @@ import java.io.InputStream;
 
 import static org.onedatashare.transferservice.odstransferservice.constant.ODSConstants.*;
 
-public class SFTPReader<T> extends AbstractItemCountingItemStreamItemReader<DataChunk>{
+public class SFTPReader extends AbstractItemCountingItemStreamItemReader<DataChunk>{
 
     Logger logger = LoggerFactory.getLogger(SFTPReader.class);
 
@@ -34,7 +34,7 @@ public class SFTPReader<T> extends AbstractItemCountingItemStreamItemReader<Data
     long fileIdx;
     FilePartitioner filePartitioner;
 
-    public SFTPReader(AccountEndpointCredential credential, int chunckSize, EntityInfo file) {
+    public SFTPReader(AccountEndpointCredential credential, EntityInfo file, int chunckSize) {
         this.file = file;
         this.filePartitioner = new FilePartitioner(chunckSize);
         this.setExecutionContextName(ClassUtils.getShortName(SFTPReader.class));

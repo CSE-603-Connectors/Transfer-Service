@@ -1,5 +1,6 @@
 package org.onedatashare.transferservice.odstransferservice.model.credential;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.experimental.Accessors;

@@ -32,6 +32,7 @@ public class JobParamService {
             builder.addString(SOURCE_URI, credential.getUri());
         } else if (CredentialGroup.OAUTH_CRED_TYPE.contains(request.getSource().getType())) {
             OAuthEndpointCredential oauthCred = request.getSource().getOauthSourceCredential();
+            builder.addString(SOURCE_BASE_ID, request.getDestination().getParentInfo().getId());
         }
         if (CredentialGroup.ACCOUNT_CRED_TYPE.contains(request.getDestination().getType())) {
             AccountEndpointCredential credential = request.getDestination().getVfsDestCredential();
@@ -39,6 +40,7 @@ public class JobParamService {
             builder.addString(DEST_URI, credential.getUri());
         } else if (CredentialGroup.OAUTH_CRED_TYPE.contains(request.getDestination().getType())) {
             OAuthEndpointCredential oauthCred = request.getDestination().getOauthDestCredential();
+            builder.addString(DEST_BASE_ID, request.getDestination().getParentInfo().getId());
         }
         return builder.toJobParameters();
     }

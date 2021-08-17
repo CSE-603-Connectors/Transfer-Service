@@ -52,7 +52,7 @@ public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChun
         logger.info("Before step for : " + stepExecution.getStepName());
         JobParameters params = stepExecution.getJobExecution().getJobParameters();
         this.sBasePath = params.getString(SOURCE_BASE_PATH);
-        this.fileName = stepExecution.getStepName();
+        this.fileName = fileInfo.getId();
         this.fsize = this.fileInfo.getSize();
         this.filePartitioner.createParts(fsize, fileName);
     }

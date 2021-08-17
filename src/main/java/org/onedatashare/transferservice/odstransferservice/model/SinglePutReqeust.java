@@ -14,11 +14,11 @@ import java.util.PriorityQueue;
 
 @Getter
 @Setter
-public class AWSSinglePutRequestMetaData {
+public class SinglePutReqeust {
     private PriorityQueue<DataChunk> dataChunkPriorityQueue;
     private List<DataChunk> chunkList;
 
-    public AWSSinglePutRequestMetaData(){
+    public SinglePutReqeust(){
         this.dataChunkPriorityQueue = new PriorityQueue<DataChunk>(new DataChunkComparator());
     }
     public void addChunk(DataChunk chunk){

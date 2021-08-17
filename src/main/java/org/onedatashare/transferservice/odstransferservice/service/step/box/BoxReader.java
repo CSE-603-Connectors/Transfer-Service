@@ -26,7 +26,7 @@ public class BoxReader extends AbstractItemCountingItemStreamItemReader<DataChun
     private BoxFile currentFile;
     EntityInfo fileInfo;
 
-    public BoxReader(OAuthEndpointCredential credential, int chunkSize, EntityInfo fileInfo){
+    public BoxReader(OAuthEndpointCredential credential, EntityInfo fileInfo, int chunkSize){
         this.credential = credential;
         this.setName(ClassUtils.getShortName(BoxReader.class));
         this.chunkSize = Math.max(SIXTYFOUR_KB, chunkSize);

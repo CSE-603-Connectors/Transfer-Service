@@ -53,7 +53,7 @@ public class BoxWriter implements ItemWriter<DataChunk> {
     public void beforeStep(StepExecution stepExecution) {
         this.parentFolderId = stepExecution.getJobParameters().getString(DEST_BASE_ID);
         logger.info(this.parentFolderId);
-        this.boxFolder = new BoxFolder(this.boxAPIConnection, "0");//for now hard coded to 0 which is the root of the box account
+        this.boxFolder = new BoxFolder(this.boxAPIConnection, this.parentFolderId);//for now hard coded to 0 which is the root of the box account
         if (this.fileInfo.getSize() < FIFTY_MB) {
             chunkedUpload = false;
             onePut = new SinglePutReqeust();

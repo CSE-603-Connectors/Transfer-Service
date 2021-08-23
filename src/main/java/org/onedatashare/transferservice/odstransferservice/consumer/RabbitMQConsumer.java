@@ -2,7 +2,9 @@ package org.onedatashare.transferservice.odstransferservice.consumer;
 
 
 import com.google.gson.Gson;
+import com.netflix.discovery.converters.Auto;
 import org.onedatashare.transferservice.odstransferservice.model.TransferJobRequest;
+import org.onedatashare.transferservice.odstransferservice.service.ConnectionBag;
 import org.onedatashare.transferservice.odstransferservice.service.DatabaseService.CrudService;
 import org.onedatashare.transferservice.odstransferservice.service.JobControl;
 import org.onedatashare.transferservice.odstransferservice.service.JobParamService;
@@ -35,6 +37,9 @@ public class RabbitMQConsumer {
     @Autowired
     CrudService crudService;
 
+    @Autowired
+    ConnectionBag connectionBag;
+
 
     @RabbitListener(queues = "${ods.rabbitmq.queue}")
     public void consumeDefaultMessage(final Message message) throws Exception {
@@ -43,6 +48,7 @@ public class RabbitMQConsumer {
 
         Gson g = new Gson();
         TransferJobRequest request = g.fromJson(jsonStr, TransferJobRequest.class);
+        connectionBag.preparePools(request);
         logger.info(request.toString());
         try {
             JobParameters parameters = jobParamService.translate(new JobParametersBuilder(), request);

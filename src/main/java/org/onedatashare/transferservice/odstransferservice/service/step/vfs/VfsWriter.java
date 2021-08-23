@@ -24,7 +24,6 @@ public class VfsWriter implements ItemWriter<DataChunk> {
     HashMap<String, FileChannel> stepDrain;
     String fileName;
     String destinationPath;
-    Path filePath;
 
     public VfsWriter(AccountEndpointCredential credential) {
         stepDrain = new HashMap<>();
@@ -35,8 +34,6 @@ public class VfsWriter implements ItemWriter<DataChunk> {
     public void beforeStep(StepExecution stepExecution) {
         this.fileName = stepExecution.getStepName();
         this.destinationPath = stepExecution.getJobParameters().getString(DEST_BASE_PATH);
-        this.filePath = Paths.get(this.destinationPath + this.fileName);
-        prepareFile();
     }
 
     @AfterStep
@@ -50,40 +47,43 @@ public class VfsWriter implements ItemWriter<DataChunk> {
         }
     }
 
-    public FileChannel getChannel(String fileName) throws IOException {
-        if (this.stepDrain.containsKey(fileName)) {
-            return this.stepDrain.get(fileName);
+    public FileChannel getChannel(Path filePath) throws IOException {
+        if (this.stepDrain.containsKey(filePath.getFileName().toString())) {
+            return this.stepDrain.get(filePath.getFileName().toString());
         } else {
-            logger.info("creating file : " + fileName);
-            FileChannel channel = null;
-            try {
-                channel = FileChannel.open(this.filePath, StandardOpenOption.WRITE);
-                stepDrain.put(fileName, channel);
-            } catch (IOException exception) {
-                logger.error("Not Able to open the channel");
-                exception.printStackTrace();
-            }
+            logger.info("creating file : " + filePath.toString());
+            prepareFile(filePath);
+            FileChannel channel = FileChannel.open(filePath, StandardOpenOption.WRITE);
+            stepDrain.put(filePath.getFileName().toString(), channel);
             return channel;
         }
     }
 
-    public void prepareFile() {
-        try {
-            Files.createDirectories(this.filePath.getParent());
-            Files.createFile(this.filePath);
-        }catch (FileAlreadyExistsException fileAlreadyExistsException){
-            logger.warn("Already have the file with this path \t" + this.filePath.toString());
-        } catch (IOException e) {
-            e.printStackTrace();
+    public void prepareFile(Path fileToPrepare) {
+        if(Files.notExists(fileToPrepare.getParent())){
+            try{
+                Files.createDirectories(fileToPrepare.getParent());
+            } catch (IOException e) {
+                logger.error("Already have the directory with this path \t {}", fileToPrepare.getParent().toString());
+                e.printStackTrace();
+            }
+        }
+        if(Files.notExists(fileToPrepare)){
+            try {
+                Files.createFile(fileToPrepare);
+            } catch (IOException e) {
+                logger.error("Already have the file with this path \t {}", fileToPrepare.toString());
+                e.printStackTrace();
+            }
         }
     }
 
     @Override
-    public void write(List<? extends DataChunk> items) throws Exception {
-        logger.info(Thread.currentThread().getName());
+    public void write(List<? extends DataChunk> items) throws IOException {
+        Path currentFilePath = Paths.get(this.destinationPath, items.get(0).getFileName());
         for (int i = 0; i < items.size(); i++) {
             DataChunk chunk = items.get(i);
-            FileChannel channel = getChannel(chunk.getFileName());
+            FileChannel channel = getChannel(currentFilePath);
             int bytesWritten = channel.write(ByteBuffer.wrap(chunk.getData()), chunk.getStartPosition());
             logger.info("Wrote the amount of bytes: " + String.valueOf(bytesWritten));
             if (chunk.getSize() != bytesWritten)

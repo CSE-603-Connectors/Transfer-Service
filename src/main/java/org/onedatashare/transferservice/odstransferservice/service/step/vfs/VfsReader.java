@@ -22,6 +22,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import static org.onedatashare.transferservice.odstransferservice.constant.ODSConstants.*;
 
@@ -31,7 +33,6 @@ public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChun
     Logger logger = LoggerFactory.getLogger(VfsReader.class);
     long fsize;
     int chunkSize;
-    FileInputStream inputStream;
     String sBasePath;
     String fileName;
     FilePartitioner filePartitioner;
@@ -89,18 +90,19 @@ public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChun
     protected void doOpen() {
         logger.info("Starting Open in VFS");
         try {
-            this.inputStream = new FileInputStream(this.sBasePath + this.fileInfo.getPath());
+            Path path = Paths.get(this.sBasePath, this.fileInfo.getPath());
+            this.sink = FileChannel.open(path);
         } catch (FileNotFoundException e) {
             logger.error("Path not found : " + this.sBasePath + this.fileName);
             e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        this.sink = this.inputStream.getChannel();
     }
 
     @Override
     protected void doClose() {
         try {
-            if (inputStream != null) inputStream.close();
             if(sink.isOpen()) sink.close();
         } catch (Exception ex) {
             logger.error("Not able to close the input Stream");

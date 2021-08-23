@@ -1,12 +1,16 @@
 package org.onedatashare.transferservice.odstransferservice.service.step.sftp;
 
 import com.jcraft.jsch.*;
+import lombok.SneakyThrows;
 import org.onedatashare.transferservice.odstransferservice.model.DataChunk;
 
 import org.onedatashare.transferservice.odstransferservice.model.credential.AccountEndpointCredential;
+import org.onedatashare.transferservice.odstransferservice.service.jsch.SftpSessionPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.annotation.AfterJob;
 import org.springframework.batch.core.annotation.AfterStep;
 import org.springframework.batch.core.annotation.BeforeStep;
 import org.springframework.batch.item.ItemWriter;
@@ -26,37 +30,42 @@ public class SFTPWriter implements ItemWriter<DataChunk> {
     private String dBasePath;
     AccountEndpointCredential destCred;
     HashMap<String, ChannelSftp> fileToChannel;
-    JSch jsch;
+    private SftpSessionPool sftpConnectionPool;
+    private Session session;
+
     public SFTPWriter(AccountEndpointCredential destCred) {
         fileToChannel = new HashMap<>();
         this.destCred = destCred;
-        jsch = new JSch();
+    }
+
+    public void setConnectionPool(SftpSessionPool connectionPool) {
+        this.sftpConnectionPool = connectionPool;
     }
 
     @BeforeStep
-    public void beforeStep(StepExecution stepExecution) {
+    public void beforeStep(StepExecution stepExecution) throws InterruptedException, JSchException {
         this.stepName = stepExecution.getStepName();
         this.dBasePath = stepExecution.getJobParameters().getString(DEST_BASE_PATH);
+        this.session = this.sftpConnectionPool.borrowObject();
     }
 
     @AfterStep
     public void afterStep() {
-        for(ChannelSftp value: fileToChannel.values()){
-            if(!value.isConnected()){
+        for (ChannelSftp value : fileToChannel.values()) {
+            if (!value.isConnected()) {
                 value.disconnect();
             }
         }
+        this.sftpConnectionPool.returnObject(this.session);
     }
 
-    public void establishChannel(String stepName){
+    public void establishChannel(String stepName) {
         try {
-            ChannelSftp channelSftp = SftpUtility.createConnection(jsch, destCred);
-            assert channelSftp != null;
-            if(!cdIntoDir(channelSftp, dBasePath)){
-                mkdir(channelSftp, dBasePath);
-            }
-            if(fileToChannel.containsKey(stepName)){
-                fileToChannel.remove(stepName);
+            ChannelSftp channelSftp = (ChannelSftp) this.session.openChannel("sftp");
+            channelSftp.connect();
+            if (!cdIntoDir(channelSftp, dBasePath)) {
+                createRemoteFolder(channelSftp, dBasePath);
+                cdIntoDir(channelSftp, dBasePath);
             }
             fileToChannel.put(stepName, channelSftp);
         } catch (JSchException e) {
@@ -64,43 +73,62 @@ public class SFTPWriter implements ItemWriter<DataChunk> {
         }
     }
 
-    public boolean cdIntoDir(ChannelSftp channelSftp, String directory){
-        try {
-            channelSftp.cd(directory);
-            return true;
-        } catch (SftpException sftpException) {
-            logger.warn("Could not cd into the directory we might have made moohoo");
-            sftpException.printStackTrace();
-        }
-        return false;
-    }
-
-    public boolean mkdir(ChannelSftp channelSftp, String basePath){
-        try {
-            channelSftp.mkdir(basePath);
-            return true;
-        } catch (SftpException sftpException) {
-            logger.warn("Could not make the directory you gave us boohoo");
-            sftpException.printStackTrace();
-        }
-        return false;
-    }
-
-    public OutputStream getStream(String stepName) {
-        boolean appendMode = false;
-        if(!fileToChannel.containsKey(stepName)){
-            establishChannel(stepName);
-        }else if(fileToChannel.get(stepName).isClosed() || !fileToChannel.get(stepName).isConnected()){
-            fileToChannel.remove(stepName);
-            appendMode = true;
-            establishChannel(stepName);
-        }
-        ChannelSftp channelSftp = this.fileToChannel.get(stepName);
-        try {
-            if(appendMode){
-                return channelSftp.put(stepName, ChannelSftp.APPEND);
+    @SneakyThrows
+    private void createRemoteFolder(ChannelSftp channelSftp, String remotePath){
+        logger.info("The remote path is {}", channelSftp.pwd());
+        String[] folders = remotePath.split("/");
+        for(String folder : folders){
+            logger.info(folder);
+            if(!folder.isEmpty()){
+                boolean flag = true;
+                try{
+                    channelSftp.cd(folder);
+                }catch(SftpException e){
+                    flag = false;
+                }
+                if(!flag){
+                    try{
+                        channelSftp.mkdir(folder);
+                        channelSftp.cd(folder);
+                        flag = true;
+                    }catch(SftpException ignored){
+                        ignored.printStackTrace();
+                    }
+                }
             }
-            return channelSftp.put(stepName, ChannelSftp.OVERWRITE);
+        }
+    }
+
+    public boolean cdIntoDir(ChannelSftp channelSftp, String directory) {
+        try {
+            if(directory.isEmpty() || directory.equals(channelSftp.pwd())){
+                return true;
+            }else{
+                channelSftp.cd(directory);
+                return true;
+            }
+        } catch (SftpException sftpException) {
+            logger.warn("Could not cd into the directory we might have made {}", directory);
+            return false;
+        }
+    }
+
+    public OutputStream getStream(String fileName) {
+        boolean appendMode = false;
+        if (!fileToChannel.containsKey(fileName)) {
+            establishChannel(fileName);
+        } else if (fileToChannel.get(fileName).isClosed() || !fileToChannel.get(fileName).isConnected()) {
+            fileToChannel.remove(fileName);
+            appendMode = true;
+            establishChannel(fileName);
+        }
+        ChannelSftp channelSftp = this.fileToChannel.get(fileName);
+        try {
+            if (appendMode) {
+                return channelSftp.put(fileName,ChannelSftp.APPEND);
+            } else {
+                return channelSftp.put(fileName,ChannelSftp.OVERWRITE);
+            }
         } catch (SftpException sftpException) {
             logger.warn("We failed getting the OuputStream to a file :(");
             sftpException.printStackTrace();
@@ -109,23 +137,12 @@ public class SFTPWriter implements ItemWriter<DataChunk> {
     }
 
     @Override
-    public void write(List<? extends DataChunk> items) {
-        OutputStream destination = getStream(this.stepName);
-        if(destination == null){
-            logger.error("OutputStream is null....Not able to write : " + items.get(0).getFileName());
-            establishChannel(stepName);
+    public void write(List<? extends DataChunk> items) throws IOException {
+        OutputStream destination = getStream(items.get(0).getFileName());
+        for (DataChunk dataChunk : items) {
+            logger.info(dataChunk.toString());
+            destination.write(dataChunk.getData());
         }
-        if (destination != null) {
-            try {
-                for (DataChunk b : items) {
-                    logger.info("Current chunk in SFTP Writer " + b.toString());
-                    destination.write(b.getData());
-                    destination.flush();
-                }
-            } catch (IOException e) {
-                logger.error("Error during writing chunks...exiting");
-                e.printStackTrace();
-            }
-        }
+        destination.flush();
     }
 }

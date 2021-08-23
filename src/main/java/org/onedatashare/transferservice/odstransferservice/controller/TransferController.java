@@ -1,6 +1,7 @@
 package org.onedatashare.transferservice.odstransferservice.controller;
 
 import org.onedatashare.transferservice.odstransferservice.model.TransferJobRequest;
+import org.onedatashare.transferservice.odstransferservice.service.ConnectionBag;
 import org.onedatashare.transferservice.odstransferservice.service.DatabaseService.CrudService;
 import org.onedatashare.transferservice.odstransferservice.service.JobControl;
 import org.onedatashare.transferservice.odstransferservice.service.JobParamService;
@@ -41,12 +42,16 @@ public class TransferController {
     @Autowired
     CrudService crudService;
 
+    @Autowired
+    ConnectionBag connectionBag;
+
 
     @RequestMapping(value = "/start", method = RequestMethod.POST)
     @Async
     public ResponseEntity<String> start(@RequestBody TransferJobRequest request) throws Exception {
         logger.info("Controller Entry point");
         JobParameters parameters = jobParamService.translate(new JobParametersBuilder(), request);
+        connectionBag.preparePools(request);
         crudService.insertBeforeTransfer(request);
         logger.info(request.toString());
         jc.setRequest(request);

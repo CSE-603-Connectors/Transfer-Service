@@ -87,9 +87,9 @@ public class SFTPReader extends AbstractItemCountingItemStreamItemReader<DataChu
         this.sftpSession = this.sftpConnectionPool.borrowObject();
         this.channelSftp = (ChannelSftp) sftpSession.openChannel("sftp");
         this.channelSftp.connect();
-        if(!sBasePath.isEmpty()){
-            channelSftp.cd(sBasePath);
-        }
+//        if(!sBasePath.isEmpty()){
+//            channelSftp.cd(sBasePath);
+//        }
         logger.info("after cd into base path" + channelSftp.pwd());
     }
 

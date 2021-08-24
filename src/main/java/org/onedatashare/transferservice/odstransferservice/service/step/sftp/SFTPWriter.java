@@ -144,5 +144,6 @@ public class SFTPWriter implements ItemWriter<DataChunk> {
             destination.write(dataChunk.getData());
         }
         destination.flush();
+        destination.close();
     }
 }

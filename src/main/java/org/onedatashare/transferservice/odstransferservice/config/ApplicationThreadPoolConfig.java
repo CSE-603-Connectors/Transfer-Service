@@ -16,7 +16,7 @@ public class ApplicationThreadPoolConfig{
 
     @Setter
     @Getter
-    private int TRANSFER_POOL_SIZE=32;
+    private int TRANSFER_POOL_SIZE=1;
     @Setter
     @Getter
     private int JOB_POOL_SIZE=1;
@@ -25,14 +25,14 @@ public class ApplicationThreadPoolConfig{
     private int JOB_MAX_POOL_SIZE=1;
     @Setter
     @Getter
-    private int STEP_POOL_SIZE=5;
+    private int STEP_POOL_SIZE=1;
     @Setter
     @Getter
-    private int STEP_MAX_POOL_SIZE=20;
+    private int STEP_MAX_POOL_SIZE=1;
 
     @Getter
     @Setter
-    private int parallelThreadPoolSize = 20;
+    private int parallelThreadPoolSize = 1;
 
     public TaskExecutor transferTaskExecutor(){
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

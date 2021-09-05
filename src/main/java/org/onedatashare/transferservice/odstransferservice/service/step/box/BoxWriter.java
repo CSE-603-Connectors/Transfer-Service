@@ -12,7 +12,6 @@ import org.springframework.batch.core.annotation.AfterStep;
 import org.springframework.batch.core.annotation.BeforeStep;
 import org.springframework.batch.item.ItemWriter;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,7 +21,6 @@ import static org.onedatashare.transferservice.odstransferservice.constant.ODSCo
 
 public class BoxWriter implements ItemWriter<DataChunk> {
 
-    private OAuthEndpointCredential credential;
     int chunkSize;
     private BoxAPIConnection boxAPIConnection;
     EntityInfo fileInfo;
@@ -33,8 +31,7 @@ public class BoxWriter implements ItemWriter<DataChunk> {
     BoxFolder boxFolder;
 
     public BoxWriter(OAuthEndpointCredential oauthDestCredential, EntityInfo fileInfo, int chunkSize) {
-        this.credential = oauthDestCredential;
-        this.boxAPIConnection = new BoxAPIConnection(credential.getToken());
+        this.boxAPIConnection = new BoxAPIConnection(oauthDestCredential.getToken());
         this.fileInfo = fileInfo;
         this.fileMap = new HashMap<>();
         this.chunkSize = chunkSize;

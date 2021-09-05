@@ -33,7 +33,7 @@ public class SftpSessionPool implements ObjectPool<Session> {
 
     @Override
     public void addObjects(int count) {
-        logger.info("creating {} number of connections", count);
+        logger.info("Creating {} connections to {}", count, this.credential.getUri());
         for(int i = 0; i < count; i++){
             this.addObject();
         }
@@ -53,9 +53,12 @@ public class SftpSessionPool implements ObjectPool<Session> {
     @Override
     public void close() {
         logger.info("Closing an sftp session pool");
-        for(Session session : this.sessionBlockingQueue){
-            session.disconnect();
-            this.sessionBlockingQueue.remove(session);
+        while(getNumActive() > 0){
+            for(Session session : this.sessionBlockingQueue){
+                session.disconnect();
+                logger.info("Session is disconnected {}", session);
+                this.sessionBlockingQueue.remove(session);
+            }
         }
     }
 
@@ -93,7 +96,7 @@ public class SftpSessionPool implements ObjectPool<Session> {
 
     @Override
     public void returnObject(Session obj) {
-        logger.info("trying to return an object");
+        logger.info("trying to return {}", obj);
         this.sessionBlockingQueue.add(obj);
     }
 }

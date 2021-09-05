@@ -11,7 +11,6 @@ import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.stereotype.Service;
 
 import static org.onedatashare.transferservice.odstransferservice.constant.ODSConstants.*;
-import static org.onedatashare.transferservice.odstransferservice.constant.ODSConstants.DEST_BASE_PATH;
 
 @Service
 public class JobParamService {

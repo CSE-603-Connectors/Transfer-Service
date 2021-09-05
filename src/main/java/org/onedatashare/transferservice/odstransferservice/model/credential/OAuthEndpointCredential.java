@@ -2,7 +2,6 @@ package org.onedatashare.transferservice.odstransferservice.model.credential;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.experimental.Accessors;
 
 import java.util.Date;
 

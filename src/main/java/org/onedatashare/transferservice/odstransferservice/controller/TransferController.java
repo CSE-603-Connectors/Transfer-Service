@@ -34,7 +34,7 @@ public class TransferController {
     JobControl jc;
 
     @Autowired
-    JobLauncher asyncJobLauncher;
+    JobLauncher syncJobLauncher;
 
     @Autowired
     JobParamService jobParamService;
@@ -55,7 +55,7 @@ public class TransferController {
         crudService.insertBeforeTransfer(request);
         logger.info(request.toString());
         jc.setRequest(request);
-        JobExecution jobExecution = asyncJobLauncher.run(jc.concurrentJobDefinition(), parameters);
+        JobExecution jobExecution = syncJobLauncher.run(jc.concurrentJobDefinition(request), parameters);
         return ResponseEntity.status(HttpStatus.OK).body("Your batch job has been submitted with \n ID: " + jobExecution.getJobId());
     }
 }

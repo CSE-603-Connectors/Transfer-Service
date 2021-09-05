@@ -5,6 +5,10 @@ import org.onedatashare.transferservice.odstransferservice.Enum.EndpointType;
 import org.onedatashare.transferservice.odstransferservice.model.TransferJobRequest;
 import org.onedatashare.transferservice.odstransferservice.model.credential.AccountEndpointCredential;
 import org.onedatashare.transferservice.odstransferservice.service.jsch.SftpSessionPool;
+import org.onedatashare.transferservice.odstransferservice.service.pools.SSHJSessionPool;
+import org.onedatashare.transferservice.odstransferservice.service.step.sftp.SshConnectionCreator;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -15,51 +19,71 @@ import org.springframework.stereotype.Component;
 public class ConnectionBag {
     private SftpSessionPool sftpReaderPool;
     private SftpSessionPool sftpWriterPool;
+    private SSHJSessionPool sshjReaderPool;
+    private SSHJSessionPool sshjWriterPool;
+
     boolean readerMadeSFTP;
     boolean writerMadeSFTP;
+    @Value("${ods.use.jsch}")
+    int useJsch;//0 for jsch, 1 for mina, 2 for sshj
 
-    public ConnectionBag(){
+    @Autowired
+    SshConnectionCreator connectionCreator;
+
+    public ConnectionBag() {
         readerMadeSFTP = false;
-        writerMadeSFTP= false;
+        writerMadeSFTP = false;
     }
 
     public void preparePools(TransferJobRequest request) {
         if (request.getSource().getType().equals(EndpointType.sftp)) {
             readerMadeSFTP = true;
-            this.createSftpReaderPool(request.getSource().getVfsSourceCredential(), request.getOptions().getConcurrencyThreadCount());
+            System.out.println(request.getSource().toString());
+            this.createSftpReaderPool(request.getSource().getVfsSourceCredential(), request.getOptions().getConcurrencyThreadCount(), request.getChunkSize());
         }
         if (request.getDestination().getType().equals(EndpointType.sftp)) {
             writerMadeSFTP = true;
-            this.createSftpWriterPool(request.getDestination().getVfsDestCredential(), request.getOptions().getConcurrencyThreadCount());
+            this.createSftpWriterPool(request.getDestination().getVfsDestCredential(), request.getOptions().getConcurrencyThreadCount(), request.getChunkSize());
         }
     }
 
     public void closePools() {
-        if(readerMadeSFTP){
-            sftpReaderPool.close();
+        if(useJsch == 0){
+            if(readerMadeSFTP){
+                sftpReaderPool.close();
+            }
+            if(writerMadeSFTP){
+                sftpWriterPool.close();
+            }
+        }else if(useJsch == 1){
+            if (readerMadeSFTP) {
+                sshjReaderPool.close();
+            }
+            if (writerMadeSFTP) {
+                sshjWriterPool.close();
+            }
         }
-        if(writerMadeSFTP){
-            sftpWriterPool.close();;
+    }
+
+    public void createSftpReaderPool(AccountEndpointCredential credential, int connectionCount, int chunkSize) {
+        if(useJsch == 0){
+            this.sftpReaderPool = new SftpSessionPool(credential);
+            this.sftpReaderPool.addObjects(connectionCount);
+        }else if(useJsch == 1){
+            this.sshjReaderPool = new SSHJSessionPool(credential, chunkSize);
+            this.sshjReaderPool.setConnectionCreator(this.connectionCreator);
+            this.sshjReaderPool.addObjects(connectionCount);
         }
     }
 
-    public void createSftpReaderPool(AccountEndpointCredential credential, int connectionCount) {
-        sftpReaderPool = new SftpSessionPool(credential);
-        sftpReaderPool.addObjects(connectionCount);
+    public void createSftpWriterPool(AccountEndpointCredential credential, int connectionCount, int chunkSize) {
+        if(useJsch == 0){
+            this.sftpWriterPool = new SftpSessionPool(credential);
+            this.sftpWriterPool.addObjects(connectionCount);
+        }else if(useJsch == 1){
+            this.sshjWriterPool = new SSHJSessionPool(credential, chunkSize);
+            this.sshjWriterPool.setConnectionCreator(this.connectionCreator);
+            this.sshjWriterPool.addObjects(connectionCount);
+        }
     }
-
-    public void createSftpWriterPool(AccountEndpointCredential credential, int connectionCount) {
-        sftpWriterPool = new SftpSessionPool(credential);
-        sftpWriterPool.addObjects(connectionCount);
-    }
-
-    public void prepareFtpReader(AccountEndpointCredential credential, int connectionCount) {
-
-    }
-
-    public void prepareFtpWriter(AccountEndpointCredential credential, int connectionCount) {
-
-    }
-
-
 }

@@ -3,7 +3,6 @@ package org.onedatashare.transferservice.odstransferservice.model;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 
 import javax.persistence.*;
 

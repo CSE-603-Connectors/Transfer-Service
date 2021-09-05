@@ -17,7 +17,6 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.io.Resource;
 import org.springframework.util.ClassUtils;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -65,7 +64,7 @@ public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChun
     protected DataChunk doRead() {
         FilePart chunkParameters = this.filePartitioner.nextPart();
         if (chunkParameters == null) return null;// done as there are no more FileParts in the queue
-        logger.info("currently reading {}", chunkParameters.getPartIdx());
+        logger.info("currently reading {}", chunkParameters.toString());
         ByteBuffer buffer = ByteBuffer.allocate(this.chunkSize);
         int totalBytes = 0;
         while (totalBytes < chunkParameters.getSize()) {
@@ -83,7 +82,9 @@ public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChun
         byte[] data = new byte[chunkParameters.getSize()];
         buffer.get(data, 0, totalBytes);
         buffer.clear();
-        return ODSUtility.makeChunk(totalBytes, data, chunkParameters.getStart(), Long.valueOf(chunkParameters.getPartIdx()).intValue(), this.fileName);
+        DataChunk chunk = ODSUtility.makeChunk(totalBytes, data, chunkParameters.getStart(), Long.valueOf(chunkParameters.getPartIdx()).intValue(), this.fileName);
+        logger.info("Read in {}", chunk);
+        return chunk;
     }
 
     @Override

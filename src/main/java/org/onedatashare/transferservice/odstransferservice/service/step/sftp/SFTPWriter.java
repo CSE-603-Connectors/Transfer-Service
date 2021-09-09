@@ -4,7 +4,7 @@ import com.jcraft.jsch.*;
 import lombok.SneakyThrows;
 import org.onedatashare.transferservice.odstransferservice.model.DataChunk;
 import org.onedatashare.transferservice.odstransferservice.model.credential.AccountEndpointCredential;
-import org.onedatashare.transferservice.odstransferservice.service.jsch.SftpSessionPool;
+import org.onedatashare.transferservice.odstransferservice.service.pools.SftpSessionPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.StepExecution;
@@ -12,8 +12,6 @@ import org.springframework.batch.core.annotation.AfterStep;
 import org.springframework.batch.core.annotation.BeforeStep;
 import org.springframework.batch.item.ItemWriter;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;

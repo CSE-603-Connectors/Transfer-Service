@@ -1,4 +1,4 @@
-package org.onedatashare.transferservice.odstransferservice.service.jsch;
+package org.onedatashare.transferservice.odstransferservice.service.pools;
 
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;

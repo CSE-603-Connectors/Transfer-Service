@@ -47,14 +47,28 @@ public class VfsWriter implements ItemWriter<DataChunk> {
         }
     }
 
-    public FileChannel getChannel(Path filePath) throws IOException {
-        if (this.stepDrain.containsKey(filePath.getFileName().toString())) {
-            return this.stepDrain.get(filePath.getFileName().toString());
+    public FileChannel getChannel(Path filePath) {
+        if (this.stepDrain.containsKey(filePath.toString())) {
+            return this.stepDrain.get(filePath.toString());
         } else {
             logger.info("creating file : " + filePath.toString());
             prepareFile(filePath);
-            FileChannel channel = FileChannel.open(filePath, StandardOpenOption.WRITE);
-            stepDrain.put(filePath.getFileName().toString(), channel);
+            FileChannel channel = null;
+            boolean created = false;
+            try {
+                channel = FileChannel.open(filePath, StandardOpenOption.WRITE);
+                created = true;
+            } catch (IOException e) {
+                logger.error("failed to open the file with just write permissions going to open it with create and write next");
+            }
+            if(!created){
+                try {
+                    channel = FileChannel.open(filePath, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            stepDrain.put(filePath.toString(), channel);
             return channel;
         }
     }
@@ -65,31 +79,32 @@ public class VfsWriter implements ItemWriter<DataChunk> {
                 Files.createDirectories(fileToPrepare.getParent());
             } catch (IOException e) {
                 logger.error("Already have the directory with this path \t {}", fileToPrepare.getParent().toString());
-                e.printStackTrace();
             }
-        }
-        if(Files.notExists(fileToPrepare)){
+        }else if(Files.notExists(fileToPrepare)){
             try {
                 Files.createFile(fileToPrepare);
             } catch (IOException e) {
                 logger.error("Already have the file with this path \t {}", fileToPrepare.toString());
-                e.printStackTrace();
             }
         }
     }
 
     @Override
     public void write(List<? extends DataChunk> items) throws IOException {
-        Path currentFilePath = Paths.get(this.destinationPath, items.get(0).getFileName());
+        DataChunk zero = items.get(0);
+        Path currentFilePath;
+        if(zero.getPath() == null){
+            currentFilePath = Paths.get(this.destinationPath, items.get(0).getFileName());
+        }else{
+            currentFilePath = Paths.get(this.destinationPath, items.get(0).getPath());
+        }
         for (int i = 0; i < items.size(); i++) {
             DataChunk chunk = items.get(i);
             FileChannel channel = getChannel(currentFilePath);
-            ByteBuffer buffer = ByteBuffer.wrap(chunk.getData());
-            int bytesWritten = channel.write(buffer, chunk.getStartPosition());
+            int bytesWritten = channel.write(ByteBuffer.wrap(chunk.getData()), chunk.getStartPosition());
             logger.info("Wrote the amount of bytes: " + String.valueOf(bytesWritten));
             if (chunk.getSize() != bytesWritten)
                 logger.info("Wrote " + bytesWritten + " but we should have written " + chunk.getSize());
-            buffer.clear();
         }
 
     }

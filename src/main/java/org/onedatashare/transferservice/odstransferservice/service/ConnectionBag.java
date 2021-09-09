@@ -4,7 +4,8 @@ import lombok.Getter;
 import org.onedatashare.transferservice.odstransferservice.Enum.EndpointType;
 import org.onedatashare.transferservice.odstransferservice.model.TransferJobRequest;
 import org.onedatashare.transferservice.odstransferservice.model.credential.AccountEndpointCredential;
-import org.onedatashare.transferservice.odstransferservice.service.jsch.SftpSessionPool;
+import org.onedatashare.transferservice.odstransferservice.service.pools.FTPConnectionPool;
+import org.onedatashare.transferservice.odstransferservice.service.pools.SftpSessionPool;
 import org.onedatashare.transferservice.odstransferservice.service.pools.SSHJSessionPool;
 import org.onedatashare.transferservice.odstransferservice.service.step.sftp.SshConnectionCreator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,9 +22,13 @@ public class ConnectionBag {
     private SftpSessionPool sftpWriterPool;
     private SSHJSessionPool sshjReaderPool;
     private SSHJSessionPool sshjWriterPool;
+    private FTPConnectionPool ftpReaderPool;
+    private FTPConnectionPool ftpWriterPool;
 
-    boolean readerMadeSFTP;
-    boolean writerMadeSFTP;
+    EndpointType readerType;
+    EndpointType writerType;
+    boolean readerMade;
+    boolean writerMade;
     @Value("${ods.use.jsch}")
     int useJsch;//0 for jsch, 1 for mina, 2 for sshj
 
@@ -31,37 +36,80 @@ public class ConnectionBag {
     SshConnectionCreator connectionCreator;
 
     public ConnectionBag() {
-        readerMadeSFTP = false;
-        writerMadeSFTP = false;
+        readerMade = false;
+        writerMade = false;
     }
 
     public void preparePools(TransferJobRequest request) {
         if (request.getSource().getType().equals(EndpointType.sftp)) {
-            readerMadeSFTP = true;
-            System.out.println(request.getSource().toString());
+            readerMade = true;
+            readerType = EndpointType.sftp;
             this.createSftpReaderPool(request.getSource().getVfsSourceCredential(), request.getOptions().getConcurrencyThreadCount(), request.getChunkSize());
         }
         if (request.getDestination().getType().equals(EndpointType.sftp)) {
-            writerMadeSFTP = true;
+            writerMade = true;
+            writerType = EndpointType.sftp;
             this.createSftpWriterPool(request.getDestination().getVfsDestCredential(), request.getOptions().getConcurrencyThreadCount(), request.getChunkSize());
+        }
+
+        if (request.getSource().getType().equals(EndpointType.ftp)) {
+            readerType = EndpointType.ftp;
+            readerMade = true;
+            this.createFtpReaderPool(request.getSource().getVfsSourceCredential(), request.getOptions().getConcurrencyThreadCount(), request.getChunkSize());
+        }
+        if (request.getDestination().getType().equals(EndpointType.ftp)) {
+            writerMade = true;
+            writerType = EndpointType.ftp;
+            this.createFtpWriterPool(request.getDestination().getVfsDestCredential(), request.getOptions().getConcurrencyThreadCount(), request.getChunkSize());
         }
     }
 
     public void closePools() {
-        if(useJsch == 0){
-            if(readerMadeSFTP){
-                sftpReaderPool.close();
+        if(readerType != null){
+            switch (readerType){
+                case ftp:
+                    this.ftpReaderPool.close();
+                    break;
+                case sftp:
+                    if(useJsch == 0){
+                        sftpReaderPool.close();
+                    }else{
+                        sshjReaderPool.close();;
+                    }
+                    break;
             }
-            if(writerMadeSFTP){
-                sftpWriterPool.close();
+        }
+        if(writerType != null){
+            switch (writerType){
+                case ftp:
+                    this.ftpWriterPool.close();
+                    break;
+                case sftp:
+                    if(useJsch == 0){
+                        sftpWriterPool.close();
+                    }else{
+                        sshjWriterPool.close();
+                    }
+                    break;
             }
-        }else if(useJsch == 1){
-            if (readerMadeSFTP) {
-                sshjReaderPool.close();
-            }
-            if (writerMadeSFTP) {
-                sshjWriterPool.close();
-            }
+        }
+    }
+
+    public void createFtpReaderPool(AccountEndpointCredential credential, int connectionCount, int chunkSize){
+        this.ftpReaderPool = new FTPConnectionPool(credential, chunkSize);
+        try {
+            this.ftpReaderPool.addObjects(connectionCount);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void createFtpWriterPool(AccountEndpointCredential credential, int connectionCount, int chunkSize){
+        this.ftpWriterPool = new FTPConnectionPool(credential, chunkSize);
+        try {
+            this.ftpWriterPool.addObjects(connectionCount);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

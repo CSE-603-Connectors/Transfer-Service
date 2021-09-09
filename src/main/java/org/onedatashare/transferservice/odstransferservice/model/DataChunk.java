@@ -10,6 +10,6 @@ public class DataChunk {
     @ToString.Exclude
     byte[] data;
     String fileName;
-    String basePath;
+    String path;
     long size;
 }

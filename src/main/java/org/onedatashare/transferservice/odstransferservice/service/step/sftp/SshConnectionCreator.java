@@ -1,7 +1,6 @@
 package org.onedatashare.transferservice.odstransferservice.service.step.sftp;
 
 import lombok.NoArgsConstructor;
-import net.schmizz.sshj.Config;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.connection.Connection;
 import net.schmizz.sshj.transport.TransportException;
@@ -10,16 +9,14 @@ import net.schmizz.sshj.userauth.UserAuthException;
 import net.schmizz.sshj.userauth.keyprovider.KeyProvider;
 import org.apache.sshd.client.SshClient;
 import org.apache.sshd.client.session.ClientSession;
+import org.onedatashare.transferservice.odstransferservice.Enum.EndpointType;
 import org.onedatashare.transferservice.odstransferservice.model.credential.AccountEndpointCredential;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
-import javax.net.SocketFactory;
 import java.io.IOException;
-import java.net.Socket;
-import java.nio.channels.SocketChannel;
 import java.security.*;
 import java.security.interfaces.RSAPrivateCrtKey;
 import java.security.spec.InvalidKeySpecException;
@@ -37,7 +34,7 @@ public class SshConnectionCreator {
     KeyFactory kf;
 
     public ClientSession authenticateClientSession(SshClient sshClient, AccountEndpointCredential credential) {
-        String[] destCredUri = accountCredentialURIFormated(credential);
+        String[] destCredUri = AccountEndpointCredential.uriFormat(credential, EndpointType.sftp);
         try {
             ClientSession clientSession = sshClient.connect(credential.getUsername(), destCredUri[0], Integer.parseInt(destCredUri[1])).verify().getSession();
             logger.info("Doing basic auth sftp -- connected the remote ssh server");
@@ -102,7 +99,7 @@ public class SshConnectionCreator {
     }
 
     public SSHClient createConnectedAndAuthenticatedSSHClient(AccountEndpointCredential credential, long size) throws IOException {
-        String[] destCredUri = accountCredentialURIFormated(credential);
+        String[] destCredUri = AccountEndpointCredential.uriFormat(credential, EndpointType.sftp);
         SSHClient sshClient = new SSHClient();
         logger.info("The SSHClient window size: {}, timeout: {}", sshClient.getConnection().getWindowSize(), sshClient.getConnection().getTimeoutMs());
         sshClient.addHostKeyVerifier(new PromiscuousVerifier());
@@ -133,10 +130,4 @@ public class SshConnectionCreator {
         }
         return null;
     }
-
-    public String[] accountCredentialURIFormated(AccountEndpointCredential credential) {
-        String noTypeUri = credential.getUri().replaceFirst("sftp://", "");
-        return noTypeUri.split(":");
-    }
-
 }

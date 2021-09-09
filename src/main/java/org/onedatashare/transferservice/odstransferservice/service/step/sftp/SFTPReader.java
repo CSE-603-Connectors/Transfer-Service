@@ -6,16 +6,13 @@ import org.onedatashare.transferservice.odstransferservice.model.EntityInfo;
 import org.onedatashare.transferservice.odstransferservice.model.FilePart;
 import org.onedatashare.transferservice.odstransferservice.model.credential.AccountEndpointCredential;
 import org.onedatashare.transferservice.odstransferservice.service.FilePartitioner;
-import org.onedatashare.transferservice.odstransferservice.service.jsch.SftpSessionPool;
+import org.onedatashare.transferservice.odstransferservice.service.pools.SftpSessionPool;
 import org.onedatashare.transferservice.odstransferservice.utility.ODSUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.annotation.BeforeStep;
-import org.springframework.batch.item.file.ResourceAwareItemReaderItemStream;
 import org.springframework.batch.item.support.AbstractItemCountingItemStreamItemReader;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.core.io.Resource;
 import org.springframework.util.ClassUtils;
 
 import java.io.IOException;
@@ -85,7 +82,7 @@ public class SFTPReader extends AbstractItemCountingItemStreamItemReader<DataChu
             if (bytesRead == -1) return null;
             totalBytesRead += bytesRead;
         }
-        DataChunk chunk = ODSUtility.makeChunk(currentChunk.getSize(), data, currentChunk.getStart(), (int) currentChunk.getPartIdx(), this.fileInfo.getId());
+        DataChunk chunk = ODSUtility.makeChunk(currentChunk.getSize(), data, currentChunk.getStart(), (int) currentChunk.getPartIdx(), this.fileInfo.getPath(), this.fileInfo.getId());
         chunkOfFile.close();
         logger.info("Read in {}", chunk.toString());
         return chunk;

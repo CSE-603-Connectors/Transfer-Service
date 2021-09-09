@@ -29,6 +29,16 @@ public class ODSUtility {
         return dataChunk;
     }
 
+    public static DataChunk makeChunk(long size, byte[] data, long startPosition, int chunkIdx, String path, String fileName) {
+        DataChunk dataChunk = new DataChunk();
+        dataChunk.setStartPosition(startPosition);
+        dataChunk.setChunkIdx(chunkIdx);
+        dataChunk.setFileName(fileName);
+        dataChunk.setData(data);
+        dataChunk.setPath(path);
+        dataChunk.setSize(size);
+        return dataChunk;
+    }
 
     public static UploadPartRequest makePartRequest(DataChunk dataChunk, String bucketName, String uploadId, String key, boolean lastPart) {
         UploadPartRequest uploadPartRequest = new UploadPartRequest();
@@ -42,7 +52,7 @@ public class ODSUtility {
         return uploadPartRequest;
     }
 
-    public static final EndpointType[] SEEKABLE_PROTOCOLS = new EndpointType[]{EndpointType.s3, EndpointType.vfs, EndpointType.box, EndpointType.sftp};
+    public static final EndpointType[] SEEKABLE_PROTOCOLS = new EndpointType[]{EndpointType.s3, EndpointType.vfs, EndpointType.box, EndpointType.sftp, EndpointType.ftp};
     public static final EndpointType[] NON_SEEKABLE_PROTOCOLS = new EndpointType[]{};
     public static final HashSet<EndpointType> fullyOptimizableProtocols = new HashSet<EndpointType>(Arrays.asList(SEEKABLE_PROTOCOLS));
     public static final HashSet<EndpointType> notFullyOptimizableProtcols = new HashSet<>();

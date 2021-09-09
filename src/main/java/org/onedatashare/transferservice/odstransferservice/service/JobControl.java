@@ -18,8 +18,6 @@ import org.onedatashare.transferservice.odstransferservice.service.step.sftp.*;
 import org.onedatashare.transferservice.odstransferservice.service.step.vfs.VfsReader;
 import org.onedatashare.transferservice.odstransferservice.service.step.vfs.VfsWriter;
 import org.onedatashare.transferservice.odstransferservice.utility.ODSUtility;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.configuration.annotation.DefaultBatchConfigurer;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
@@ -52,8 +50,6 @@ import java.util.List;
 @Getter
 @Setter
 public class JobControl extends DefaultBatchConfigurer {
-
-    Logger logger = LoggerFactory.getLogger(JobControl.class);
 
     private DataSource dataSource;
     private PlatformTransactionManager transactionManager;
@@ -109,22 +105,20 @@ public class JobControl extends DefaultBatchConfigurer {
         factory.setTransactionManager(transactionManager);
         factory.setIsolationLevelForCreate("ISOLATION_SERIALIZABLE");
         factory.setTablePrefix("BATCH_");
-        factory.setMaxVarCharLength(1000);
         return factory.getObject();
     }
 
     private List<Flow> createConcurrentFlow(List<EntityInfo> infoList, String basePath, String id) {
-        logger.info("CreateConcurrentFlow function");
         List<Flow> flows = new ArrayList<>();
         for (EntityInfo file : infoList) {
             String idForStep = "";
-            if (!file.getId().isEmpty()) {
+            if (file.getPath().isEmpty()) {
                 idForStep = file.getId();
             } else {
                 idForStep = file.getPath();
             }
             SimpleStepBuilder<DataChunk, DataChunk> child = stepBuilderFactory.get(idForStep).<DataChunk, DataChunk>chunk(this.request.getOptions().getPipeSize());
-            child.reader(getRightReader(request.getSource().getType(), file)).writer(getRightWriter(request.getDestination().getType(), file));
+            child.reader(getRightReader(request.getSource().getType(), file)).writer(getRightWriter(request.getDestination().getType(), file)).faultTolerant().retryLimit(3);
             if (ODSUtility.fullyOptimizableProtocols.contains(this.request.getSource().getType()) && ODSUtility.fullyOptimizableProtocols.contains(this.request.getDestination().getType()) && this.request.getOptions().getParallelThreadCount() > 1) {
                 child.taskExecutor(this.threadPoolConfig.parallelThreadPool(request.getOptions().getParallelThreadCount()));
             }
@@ -150,7 +144,9 @@ public class JobControl extends DefaultBatchConfigurer {
                     return sshJReader;
                 }
             case ftp:
-                return new FTPReader(request.getSource().getVfsSourceCredential(), fileInfo, request.getChunkSize());
+                FTPReader ftpReader = new FTPReader(request.getSource().getVfsSourceCredential(), fileInfo, request.getChunkSize());
+                ftpReader.setConnectionBag(this.connectionBag.getFtpReaderPool());
+                return ftpReader;
             case s3:
                 return new AmazonS3Reader(request.getSource().getVfsSourceCredential(), request.getChunkSize());
             case box:
@@ -174,7 +170,9 @@ public class JobControl extends DefaultBatchConfigurer {
                     return sshJWriter;
                 }
             case ftp:
-                return new FTPWriter(request.getDestination().getVfsDestCredential());
+                FTPWriter ftpWriter = new FTPWriter(request.getDestination().getVfsDestCredential());
+                ftpWriter.setConnectionBag(this.connectionBag.getFtpWriterPool());
+                return ftpWriter;
             case s3:
                 return new AmazonS3Writer(request.getDestination().getVfsDestCredential(), fileInfo);
             case box:
@@ -188,18 +186,17 @@ public class JobControl extends DefaultBatchConfigurer {
         jobCompletionListener.setConnectionBag(this.connectionBag);
         connectionBag.preparePools(request);
         List<Flow> flows = createConcurrentFlow(request.getSource().getInfoList(), request.getSource().getParentInfo().getPath(), request.getJobId());
-        Flow f = new FlowBuilder<SimpleFlow>("splitFlow")
+        Flow[] array = new Flow[flows.size()];
+        Flow f = new FlowBuilder<SimpleFlow>("concurrentFlow")
                 .split(this.threadPoolConfig.stepTaskExecutor(this.request.getOptions().getConcurrencyThreadCount()))
-                .add(flows.toArray(new Flow[0]))
-                .end();
-        Job job = jobBuilderFactory
+                .add(flows.toArray(array))
+                .build();
+        return jobBuilderFactory
                 .get(request.getOwnerId())
                 .incrementer(new RunIdIncrementer())
-                .preventRestart()
                 .listener(jobCompletionListener)
                 .start(f)
                 .build()
                 .build();
-        return job;
     }
 }

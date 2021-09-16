@@ -21,7 +21,7 @@ public class FtpConnectionPool implements ObjectPool<FTPClient> {
 
     public FtpConnectionPool(AccountEndpointCredential credential, int bufferSize){
         this.credential = credential;
-        this.bufferSize = bufferSize;
+        this.bufferSize = 0;
         this.connectionPool = new LinkedBlockingQueue<>();
     }
 

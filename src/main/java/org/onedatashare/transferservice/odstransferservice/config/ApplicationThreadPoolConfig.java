@@ -67,6 +67,8 @@ public class ApplicationThreadPoolConfig{
     public TaskExecutor sequentialThreadPool(){
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(1);
+        executor.setQueueCapacity(Integer.MAX_VALUE);
         executor.setThreadNamePrefix("sequential");
         executor.setKeepAliveSeconds(60);
         executor.initialize();

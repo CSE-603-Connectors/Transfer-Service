@@ -6,6 +6,8 @@ import org.apache.commons.net.ftp.FTPReply;
 import org.apache.commons.pool2.ObjectPool;
 import org.onedatashare.transferservice.odstransferservice.Enum.EndpointType;
 import org.onedatashare.transferservice.odstransferservice.model.credential.AccountEndpointCredential;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -15,6 +17,7 @@ public class FtpConnectionPool implements ObjectPool<FTPClient> {
     private final AccountEndpointCredential credential;
     private final int bufferSize;
     private LinkedBlockingQueue<FTPClient> connectionPool;
+    Logger logger = LoggerFactory.getLogger(FtpConnectionPool.class);
 
     public FtpConnectionPool(AccountEndpointCredential credential, int bufferSize){
         this.credential = credential;
@@ -44,6 +47,7 @@ public class FtpConnectionPool implements ObjectPool<FTPClient> {
         client.setFileTransferMode(FTPClient.BLOCK_TRANSFER_MODE);
         client.setFileType(FTPClient.BINARY_FILE_TYPE);
         client.setAutodetectUTF8(true);
+        client.enterLocalPassiveMode();
         client.setControlKeepAliveTimeout(300);
         this.connectionPool.add(client);
     }
@@ -52,12 +56,22 @@ public class FtpConnectionPool implements ObjectPool<FTPClient> {
     public void addObjects(int count) throws IOException {
         for(int i = 0; i < count; i++){
             this.addObject();
+            logger.info("creating conneciton {}", i+1);
         }
     }
 
     @Override
     public FTPClient borrowObject() throws InterruptedException {
-        return this.connectionPool.take();
+        if(this.getNumActive() > 0){
+            return this.connectionPool.take();
+        }else{
+            try {
+                this.addObject();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return this.connectionPool.take();
+        }
     }
 
     @Override
@@ -79,12 +93,25 @@ public class FtpConnectionPool implements ObjectPool<FTPClient> {
 
     @Override
     public int getNumActive() {
-        return 0;
+        int count = 0;
+        for(FTPClient client : this.connectionPool){
+            if(client.isAvailable() && client.isConnected()){
+                ++count;
+            }
+        }
+        return count;
     }
 
     @Override
     public int getNumIdle() {
-        return 0;
+        int count = 0;
+        for(FTPClient client : this.connectionPool){
+            if(!client.isAvailable() || !client.isConnected()){
+                ++count;
+            }
+        }
+        return count;
+
     }
 
     @SneakyThrows

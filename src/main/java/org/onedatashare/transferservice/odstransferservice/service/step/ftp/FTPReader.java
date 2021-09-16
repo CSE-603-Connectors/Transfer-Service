@@ -88,8 +88,11 @@ public class FTPReader extends AbstractItemCountingItemStreamItemReader<DataChun
         FilePart filePart = this.partitioner.nextPart();
         if(filePart == null) return null;
         FTPClient client = this.connectionPool.borrowObject();
+        logger.info("Got the ftp client");
         InputStream inputStream = client.retrieveFileStream(this.fileInfo.getPath());
+        logger.info("opened input stream to file in doRead");
         moveStream(inputStream, filePart.getStart());
+        logger.info("moved the stream {}", filePart.getStart());
         byte[] data = new byte[filePart.getSize()];
         int totalBytes = 0;
         while(totalBytes <= filePart.getSize()){

@@ -49,7 +49,7 @@ public class ConnectionBag {
         if (request.getDestination().getType().equals(EndpointType.ftp)) {
             writerMade = true;
             writerType = EndpointType.ftp;
-            this.createFtpWriterPool(request.getDestination().getVfsDestCredential(), request.getOptions().getConcurrencyThreadCount(), request.getChunkSize());
+            this.createFtpWriterPool(request.getDestination().getVfsDestCredential(), request.getOptions().getConcurrencyThreadCount()+request.getOptions().getParallelThreadCount(), request.getChunkSize());
         }
     }
 

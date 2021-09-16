@@ -29,7 +29,6 @@ public class ODSUtility {
         return dataChunk;
     }
 
-
     public static UploadPartRequest makePartRequest(DataChunk dataChunk, String bucketName, String uploadId, String key, boolean lastPart) {
         UploadPartRequest uploadPartRequest = new UploadPartRequest();
         uploadPartRequest.setInputStream(new ByteArrayInputStream(dataChunk.getData()));

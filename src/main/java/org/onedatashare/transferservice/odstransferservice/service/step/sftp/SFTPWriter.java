@@ -61,9 +61,6 @@ public class SFTPWriter implements ItemWriter<DataChunk>, SetPool {
             if(!cdIntoDir(channelSftp, dBasePath)){
                 SftpUtility.mkdir(channelSftp, dBasePath);
             }
-            if(fileToChannel.containsKey(stepName)){
-                fileToChannel.remove(stepName);
-            }
             fileToChannel.put(stepName, channelSftp);
         } catch (JSchException e) {
             e.printStackTrace();

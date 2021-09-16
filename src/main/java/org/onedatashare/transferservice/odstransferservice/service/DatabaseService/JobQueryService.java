@@ -12,12 +12,14 @@ import org.springframework.stereotype.Service;
 public class JobQueryService {
     @Autowired
     JobExplorer jobExplorer;
+
     @Autowired
     JobRepository jobRepository;
 
     public JobExecution getJobExecution(JobInstance jobInstance) {
         return jobExplorer.getLastJobExecution(jobInstance);
     }
+
     public JobInstance getLastJobInstance(String jobName) {
         return jobExplorer.getLastJobInstance(jobName);
     }

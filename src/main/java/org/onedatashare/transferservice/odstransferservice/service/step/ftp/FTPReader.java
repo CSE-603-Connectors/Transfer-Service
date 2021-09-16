@@ -36,7 +36,6 @@ public class FTPReader extends AbstractItemCountingItemStreamItemReader<DataChun
     String sBasePath;
     String fName;
     AccountEndpointCredential sourceCred;
-    FileObject foSrc;
     int chunckSize;
     int chunksCreated;
     long fileIdx;
@@ -76,24 +75,33 @@ public class FTPReader extends AbstractItemCountingItemStreamItemReader<DataChun
         this.setExecutionContextName(name);
     }
 
+    public void moveStream(InputStream stream, long moveBy) throws IOException {
+        long totalMoved = 0;
+        while(totalMoved < moveBy){
+            totalMoved += stream.skip(moveBy-totalMoved);
+        }
+    }
 
     @SneakyThrows
     @Override
     protected DataChunk doRead() {
         FilePart filePart = this.partitioner.nextPart();
         if(filePart == null) return null;
+        FTPClient client = this.connectionPool.borrowObject();
+        InputStream inputStream = client.retrieveFileStream(this.fileInfo.getPath());
+        moveStream(inputStream, filePart.getStart());
         byte[] data = new byte[filePart.getSize()];
         int totalBytes = 0;
-        while(totalBytes < filePart.getSize()){
-            int byteRead = this.inputStream.read(data, totalBytes, filePart.getSize()-totalBytes);
+        while(totalBytes <= filePart.getSize()){
+            int byteRead = inputStream.read(data, totalBytes, filePart.getSize()-totalBytes);
             if (byteRead == -1) return null;
             totalBytes += byteRead;
         }
-        DataChunk chunk = ODSUtility.makeChunk(totalBytes, data, this.fileIdx, this.chunksCreated, this.fName);
-        this.client.setRestartOffset(filePart.getStart());
-        this.fileIdx += totalBytes;
-        this.chunksCreated++;
+        DataChunk chunk = ODSUtility.makeChunk(totalBytes, data, filePart.getStart(), Math.toIntExact(filePart.getPartIdx()), this.fileInfo.getId());
+//        this.client.setRestartOffset(filePart.getStart());
         logger.info(chunk.toString());
+        inputStream.close();
+        this.connectionPool.returnObject(client);
         return chunk;
     }
 
@@ -118,23 +126,23 @@ public class FTPReader extends AbstractItemCountingItemStreamItemReader<DataChun
         this.connectionPool.returnObject(this.client);
     }
 
-    @SneakyThrows
-    public void clientCreateSourceStream(String basePath, String fName) {
-        logger.info("Inside clientCreateSourceStream for : " + fName + " ");
-
-        //***GETTING STREAM USING APACHE COMMONS VFS2
-        FileSystemOptions opts = FtpUtility.generateOpts();
-        StaticUserAuthenticator auth = new StaticUserAuthenticator(null, this.sourceCred.getUsername(), this.sourceCred.getSecret());
-        DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth);
-        String wholeThing;
-        if(this.sourceCred.getUri().contains("ftp://")){
-            wholeThing = this.sourceCred.getUri() + "/" + basePath + fName;
-        }else{
-            wholeThing = "ftp://" + this.sourceCred.getUri() + "/" + fileInfo.getPath();
-        }
-        this.foSrc = VFS.getManager().resolveFile(wholeThing, opts);
-        this.inputStream = foSrc.getContent().getInputStream();
-    }
+//    @SneakyThrows
+//    public void clientCreateSourceStream(String basePath, String fName) {
+//        logger.info("Inside clientCreateSourceStream for : " + fName + " ");
+//
+//        //***GETTING STREAM USING APACHE COMMONS VFS2
+//        FileSystemOptions opts = FtpUtility.generateOpts();
+//        StaticUserAuthenticator auth = new StaticUserAuthenticator(null, this.sourceCred.getUsername(), this.sourceCred.getSecret());
+//        DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth);
+//        String wholeThing;
+//        if(this.sourceCred.getUri().contains("ftp://")){
+//            wholeThing = this.sourceCred.getUri() + "/" + basePath + fName;
+//        }else{
+//            wholeThing = "ftp://" + this.sourceCred.getUri() + "/" + fileInfo.getPath();
+//        }
+//        this.foSrc = VFS.getManager().resolveFile(wholeThing, opts);
+//        this.inputStream = foSrc.getContent().getInputStream();
+//    }
 
     @Override
     public void setPool(ObjectPool connectionPool) {

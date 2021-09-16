@@ -43,8 +43,8 @@ public class FtpConnectionPool implements ObjectPool<FTPClient> {
         if(!res){
             throw new IOException("Failed to Log into the FTP server bc the credentials did not work");
         }
-        client.setBufferSize(this.bufferSize);
-        client.setFileTransferMode(FTPClient.BLOCK_TRANSFER_MODE);
+        client.setBufferSize(0);
+        client.setFileTransferMode(FTPClient.STREAM_TRANSFER_MODE);
         client.setFileType(FTPClient.BINARY_FILE_TYPE);
         client.setAutodetectUTF8(true);
         client.enterLocalPassiveMode();
@@ -79,15 +79,12 @@ public class FtpConnectionPool implements ObjectPool<FTPClient> {
         this.connectionPool.removeIf(ftpClient -> !ftpClient.isConnected() || !ftpClient.isAvailable());
     }
 
+    @SneakyThrows
     @Override
     public void close() {
         for(FTPClient ftpClient : this.connectionPool){
+            ftpClient.disconnect();
             this.connectionPool.remove(ftpClient);
-            try {
-                ftpClient.disconnect();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
     }
 

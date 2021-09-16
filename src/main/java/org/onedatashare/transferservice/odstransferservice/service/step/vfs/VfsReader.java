@@ -22,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.HashMap;
 
 import static org.onedatashare.transferservice.odstransferservice.constant.ODSConstants.*;
 
@@ -37,7 +38,7 @@ public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChun
     FilePartitioner filePartitioner;
     EntityInfo fileInfo;
     AccountEndpointCredential credential;
-    ByteBuffer buffer;
+    HashMap<String, ByteBuffer> threadBufferMap;
 
 
     public VfsReader(AccountEndpointCredential credential, EntityInfo fInfo, int chunkSize) {
@@ -46,7 +47,7 @@ public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChun
         this.filePartitioner = new FilePartitioner(chunkSize);
         this.fileInfo = fInfo;
         this.chunkSize = chunkSize;
-        buffer = ByteBuffer.allocate(this.chunkSize);
+        threadBufferMap = new HashMap<>();
     }
 
     @BeforeStep
@@ -57,6 +58,7 @@ public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChun
         this.fileName = stepExecution.getStepName();
         this.fsize = this.fileInfo.getSize();
         this.filePartitioner.createParts(fsize, fileName);
+        this.threadBufferMap.clear();
     }
 
     @Override
@@ -67,6 +69,12 @@ public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChun
         FilePart chunkParameters = this.filePartitioner.nextPart();
         if (chunkParameters == null) return null;// done as there are no more FileParts in the queue
         logger.info("currently reading {}", chunkParameters.getPartIdx());
+        String currentThreadName = Thread.currentThread().getName();
+        ByteBuffer buffer = this.threadBufferMap.get(currentThreadName);
+        if(buffer == null){
+            buffer = ByteBuffer.allocate(chunkParameters.getSize());
+            this.threadBufferMap.put(currentThreadName, buffer);
+        }
         int totalBytes = 0;
         while (totalBytes < chunkParameters.getSize()) {
             int bytesRead = 0;

@@ -22,6 +22,7 @@ public class VfsWriter implements ItemWriter<DataChunk> {
     Logger logger = LoggerFactory.getLogger(VfsWriter.class);
     AccountEndpointCredential destCredential;
     HashMap<String, FileChannel> stepDrain;
+    HashMap<String, ByteBuffer> threadMapBuffer;
     String fileName;
     String destinationPath;
     Path filePath;
@@ -29,6 +30,7 @@ public class VfsWriter implements ItemWriter<DataChunk> {
     public VfsWriter(AccountEndpointCredential credential) {
         stepDrain = new HashMap<>();
         this.destCredential = credential;
+        this.threadMapBuffer = new HashMap<>();
     }
 
     @BeforeStep
@@ -37,11 +39,13 @@ public class VfsWriter implements ItemWriter<DataChunk> {
         this.destinationPath = stepExecution.getJobParameters().getString(DEST_BASE_PATH);
         assert this.destinationPath != null;
         this.filePath = Paths.get(this.destinationPath, this.fileName);
+        this.threadMapBuffer.clear();
         prepareFile();
     }
 
     @AfterStep
     public void afterStep() {
+        this.threadMapBuffer.clear();
         try {
             if(this.stepDrain.containsKey(this.fileName)){
                 this.stepDrain.get(this.fileName).close();
@@ -81,14 +85,21 @@ public class VfsWriter implements ItemWriter<DataChunk> {
 
     @Override
     public void write(List<? extends DataChunk> items) throws Exception {
-        logger.info(Thread.currentThread().getName());
+        String currentThreadName = Thread.currentThread().getName();
+        ByteBuffer buffer = this.threadMapBuffer.get(currentThreadName);
+        if(buffer == null){
+            buffer = ByteBuffer.allocate(Math.toIntExact(items.get(0).getSize()));
+            this.threadMapBuffer.put(currentThreadName, buffer);
+        }
         for (int i = 0; i < items.size(); i++) {
             DataChunk chunk = items.get(i);
+            buffer.put(chunk.getData());
             FileChannel channel = getChannel(chunk.getFileName());
-            int bytesWritten = channel.write(ByteBuffer.wrap(chunk.getData()), chunk.getStartPosition());
+            int bytesWritten = channel.write(buffer, chunk.getStartPosition());
             logger.info("Wrote the amount of bytes: " + String.valueOf(bytesWritten));
             if (chunk.getSize() != bytesWritten)
                 logger.info("Wrote " + bytesWritten + " but we should have written " + chunk.getSize());
+            buffer.clear();
         }
     }
 }

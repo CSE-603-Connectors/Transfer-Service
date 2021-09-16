@@ -42,21 +42,17 @@ public class FTPWriter implements ItemWriter<DataChunk>, SetPool {
     }
 
     @BeforeStep
-    public void beforeStep(StepExecution stepExecution) {
-        logger.info("Inside FTP beforeStep");
+    public void beforeStep(StepExecution stepExecution) throws InterruptedException {
+        logger.debug("Inside FTPReader beforeStep");
         outputStream = null;
         dBasePath = stepExecution.getJobParameters().getString(DEST_BASE_PATH);
         stepName = stepExecution.getStepName();
-        try {
-            this.client = this.connectionPool.borrowObject();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        this.client = this.connectionPool.borrowObject();
     }
 
     @AfterStep
     public void afterStep() {
-        logger.info("Inside FTP afterStep");
+        logger.debug("Inside FTPReader afterStep");
         try {
             if (outputStream != null) outputStream.close();
         } catch (Exception ex) {
@@ -72,9 +68,8 @@ public class FTPWriter implements ItemWriter<DataChunk>, SetPool {
                 this.outputStream = this.client.storeFileStream(this.dBasePath+"/"+fileName);
             } catch (IOException e) {
                 e.printStackTrace();
+                logger.info("Failed to get an outputstream to {}", this.dBasePath+"/"+fileName);
             }
-            logger.info("Stream not present...creating OutputStream for "+ fileName);
-            //ftpDest();
         }
         return this.outputStream;
     }

@@ -29,7 +29,7 @@ import java.io.InputStream;
 
 import static org.onedatashare.transferservice.odstransferservice.constant.ODSConstants.*;
 
-public class FTPReader<T> extends AbstractItemCountingItemStreamItemReader<DataChunk> implements SetPool {
+public class FTPReader extends AbstractItemCountingItemStreamItemReader<DataChunk> implements SetPool {
 
     Logger logger = LoggerFactory.getLogger(FTPReader.class);
     InputStream inputStream;

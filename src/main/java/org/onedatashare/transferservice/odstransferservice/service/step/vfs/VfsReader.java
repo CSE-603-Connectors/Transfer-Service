@@ -87,11 +87,7 @@ public class VfsReader extends AbstractItemCountingItemStreamItemReader<DataChun
             if (bytesRead == -1) return null;
             totalBytes += bytesRead;
         }
-        buffer.flip();
-        byte[] data = new byte[chunkParameters.getSize()];
-        buffer.get(data, 0, totalBytes);
-        buffer.clear();
-        return ODSUtility.makeChunk(totalBytes, data, chunkParameters.getStart(), Long.valueOf(chunkParameters.getPartIdx()).intValue(), this.fileName);
+        return ODSUtility.makeChunk(totalBytes, buffer.array(), chunkParameters.getStart(), Long.valueOf(chunkParameters.getPartIdx()).intValue(), this.fileName);
     }
 
     @Override

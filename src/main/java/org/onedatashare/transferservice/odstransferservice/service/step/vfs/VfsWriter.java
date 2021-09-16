@@ -94,6 +94,7 @@ public class VfsWriter implements ItemWriter<DataChunk> {
         for (int i = 0; i < items.size(); i++) {
             DataChunk chunk = items.get(i);
             buffer.put(chunk.getData());
+            buffer.flip();
             FileChannel channel = getChannel(chunk.getFileName());
             int bytesWritten = channel.write(buffer, chunk.getStartPosition());
             logger.info("Wrote the amount of bytes: " + String.valueOf(bytesWritten));

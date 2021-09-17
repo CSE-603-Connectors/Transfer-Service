@@ -47,7 +47,7 @@ public class FtpConnectionPool implements ObjectPool<FTPClient> {
 //        client.setFileTransferMode(FTPClient.BLOCK_TRANSFER_MODE);
         client.setFileType(FTPClient.BINARY_FILE_TYPE);
         client.setAutodetectUTF8(true);
-//        client.enterLocalPassiveMode();
+        client.enterLocalPassiveMode();
         client.setControlKeepAliveTimeout(300);
         this.connectionPool.add(client);
     }

@@ -24,8 +24,10 @@ import org.springframework.batch.core.annotation.BeforeStep;
 import org.springframework.batch.item.support.AbstractItemCountingItemStreamItemReader;
 import org.springframework.util.ClassUtils;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 
 import static org.onedatashare.transferservice.odstransferservice.constant.ODSConstants.*;
 
@@ -85,22 +87,22 @@ public class FTPReader extends AbstractItemCountingItemStreamItemReader<DataChun
         if(filePart == null) return null;
         logger.info("Current file part is {}", filePart);
         FTPClient client = this.connectionPool.borrowObject();
-        InputStream inputStream = client.retrieveFileStream(this.fileInfo.getPath());
+        BufferedInputStream bufferedInputStream = new BufferedInputStream(client.retrieveFileStream(this.fileInfo.getPath()));
         logger.debug("Got input stream to {}", this.fileInfo.getPath());
         if(filePart.getStart()>0){ //the first chunk does not need to move anything
-            moveStream(inputStream, filePart.getStart());
+            moveStream(bufferedInputStream, filePart.getStart());
         }
         byte[] data = new byte[filePart.getSize()];
         int totalBytes = 0;
         while(totalBytes < filePart.getSize()){
-            int byteRead = inputStream.read(data, totalBytes, filePart.getSize()-totalBytes);
+            int byteRead = bufferedInputStream.read(data, totalBytes, filePart.getSize()-totalBytes);
             if (byteRead == -1) return null;
             totalBytes += byteRead;
         }
         DataChunk chunk = ODSUtility.makeChunk(totalBytes, data, filePart.getStart(), Math.toIntExact(filePart.getPartIdx()), this.fileInfo.getId());
         this.client.setRestartOffset(filePart.getStart());
         logger.info(chunk.toString());
-        inputStream.close();
+        bufferedInputStream.close();
         this.connectionPool.returnObject(client);
         return chunk;
     }

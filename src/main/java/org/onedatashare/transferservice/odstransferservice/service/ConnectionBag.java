@@ -30,10 +30,11 @@ public class ConnectionBag {
     }
 
     public void preparePools(TransferJobRequest request) {
+        int connectionCount = request.getOptions().getConcurrencyThreadCount()+request.getOptions().getParallelThreadCount();
         if (request.getSource().getType().equals(EndpointType.sftp)) {
             readerMade = true;
             readerType = EndpointType.sftp;
-            this.createSftpReaderPool(request.getSource().getVfsSourceCredential(), request.getOptions().getConcurrencyThreadCount(), request.getChunkSize());
+            this.createSftpReaderPool(request.getSource().getVfsSourceCredential(), connectionCount, request.getChunkSize());
         }
         if (request.getDestination().getType().equals(EndpointType.sftp)) {
             writerMade = true;
@@ -44,12 +45,12 @@ public class ConnectionBag {
         if (request.getSource().getType().equals(EndpointType.ftp)) {
             readerType = EndpointType.ftp;
             readerMade = true;
-            this.createFtpReaderPool(request.getSource().getVfsSourceCredential(), request.getOptions().getConcurrencyThreadCount(), request.getChunkSize());
+            this.createFtpReaderPool(request.getSource().getVfsSourceCredential(), connectionCount, request.getChunkSize());
         }
         if (request.getDestination().getType().equals(EndpointType.ftp)) {
             writerMade = true;
             writerType = EndpointType.ftp;
-            this.createFtpWriterPool(request.getDestination().getVfsDestCredential(), request.getOptions().getConcurrencyThreadCount()+request.getOptions().getParallelThreadCount(), request.getChunkSize());
+            this.createFtpWriterPool(request.getDestination().getVfsDestCredential(), connectionCount, request.getChunkSize());
         }
     }
 

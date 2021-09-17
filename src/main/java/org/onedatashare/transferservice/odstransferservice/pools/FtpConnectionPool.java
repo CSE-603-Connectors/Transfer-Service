@@ -21,7 +21,7 @@ public class FtpConnectionPool implements ObjectPool<FTPClient> {
 
     public FtpConnectionPool(AccountEndpointCredential credential, int bufferSize){
         this.credential = credential;
-        this.bufferSize = 0;
+        this.bufferSize = bufferSize;
         this.connectionPool = new LinkedBlockingQueue<>();
     }
 
@@ -43,7 +43,7 @@ public class FtpConnectionPool implements ObjectPool<FTPClient> {
         if(!res){
             throw new IOException("Failed to Log into the FTP server bc the credentials did not work");
         }
-        client.setBufferSize(0);
+        client.setBufferSize(this.bufferSize);
         client.setFileTransferMode(FTPClient.BLOCK_TRANSFER_MODE);
         client.setFileType(FTPClient.BINARY_FILE_TYPE);
         client.setAutodetectUTF8(true);

@@ -37,8 +37,6 @@ public class FTPReader extends AbstractItemCountingItemStreamItemReader<DataChun
     String fName;
     AccountEndpointCredential sourceCred;
     int chunckSize;
-    int chunksCreated;
-    long fileIdx;
     FilePartitioner partitioner;
     EntityInfo fileInfo;
     private FtpConnectionPool connectionPool;
@@ -58,28 +56,26 @@ public class FTPReader extends AbstractItemCountingItemStreamItemReader<DataChun
         logger.info("Before step for : " + stepExecution.getStepName());
         sBasePath = stepExecution.getJobParameters().getString(SOURCE_BASE_PATH);
         sBasePath += fileInfo.getPath();
-        fName = fileInfo.getId();
-        partitioner.createParts(this.fileInfo.getSize(), fName);
-        chunksCreated = 0;
-        fileIdx = 0L;
-        this.partitioner.createParts(this.fileInfo.getSize(), this.fName);
+        this.partitioner.createParts(this.fileInfo.getSize(), fileInfo.getId());
     }
 
     @AfterStep
     public void afterStep(){
-        this.fileIdx = 0;
-        this.chunksCreated = 0;
     }
 
     public void setName(String name) {
         this.setExecutionContextName(name);
     }
 
-    public void moveStream(InputStream stream, long moveBy) throws IOException {
+    public InputStream moveStream(InputStream stream, long moveBy) throws IOException {
         long totalMoved = 0;
         while(totalMoved < moveBy){
-            totalMoved += stream.skip(moveBy-totalMoved);
+            long temp = stream.skip(moveBy-totalMoved);
+            if(temp ==-1 || temp == 0) break;
+            totalMoved+=temp;
         }
+        logger.info("Moved the stream {}", totalMoved);
+        return stream;
     }
 
     @SneakyThrows
@@ -87,21 +83,22 @@ public class FTPReader extends AbstractItemCountingItemStreamItemReader<DataChun
     protected DataChunk doRead() {
         FilePart filePart = this.partitioner.nextPart();
         if(filePart == null) return null;
+        logger.info("Current file part is {}", filePart);
         FTPClient client = this.connectionPool.borrowObject();
-        logger.info("Got the ftp client");
         InputStream inputStream = client.retrieveFileStream(this.fileInfo.getPath());
-        logger.info("opened input stream to file in doRead");
-        moveStream(inputStream, filePart.getStart());
-        logger.info("moved the stream {}", filePart.getStart());
+        logger.debug("Got input stream to {}", this.fileInfo.getPath());
+        if(filePart.getStart()>0){ //the first chunk does not need to move anything
+            moveStream(inputStream, filePart.getStart());
+        }
         byte[] data = new byte[filePart.getSize()];
         int totalBytes = 0;
-        while(totalBytes <= filePart.getSize()){
+        while(totalBytes < filePart.getSize()){
             int byteRead = inputStream.read(data, totalBytes, filePart.getSize()-totalBytes);
             if (byteRead == -1) return null;
             totalBytes += byteRead;
         }
         DataChunk chunk = ODSUtility.makeChunk(totalBytes, data, filePart.getStart(), Math.toIntExact(filePart.getPartIdx()), this.fileInfo.getId());
-//        this.client.setRestartOffset(filePart.getStart());
+        this.client.setRestartOffset(filePart.getStart());
         logger.info(chunk.toString());
         inputStream.close();
         this.connectionPool.returnObject(client);
@@ -128,24 +125,6 @@ public class FTPReader extends AbstractItemCountingItemStreamItemReader<DataChun
         }
         this.connectionPool.returnObject(this.client);
     }
-
-//    @SneakyThrows
-//    public void clientCreateSourceStream(String basePath, String fName) {
-//        logger.info("Inside clientCreateSourceStream for : " + fName + " ");
-//
-//        //***GETTING STREAM USING APACHE COMMONS VFS2
-//        FileSystemOptions opts = FtpUtility.generateOpts();
-//        StaticUserAuthenticator auth = new StaticUserAuthenticator(null, this.sourceCred.getUsername(), this.sourceCred.getSecret());
-//        DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth);
-//        String wholeThing;
-//        if(this.sourceCred.getUri().contains("ftp://")){
-//            wholeThing = this.sourceCred.getUri() + "/" + basePath + fName;
-//        }else{
-//            wholeThing = "ftp://" + this.sourceCred.getUri() + "/" + fileInfo.getPath();
-//        }
-//        this.foSrc = VFS.getManager().resolveFile(wholeThing, opts);
-//        this.inputStream = foSrc.getContent().getInputStream();
-//    }
 
     @Override
     public void setPool(ObjectPool connectionPool) {

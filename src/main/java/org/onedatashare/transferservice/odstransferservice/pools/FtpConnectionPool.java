@@ -44,10 +44,10 @@ public class FtpConnectionPool implements ObjectPool<FTPClient> {
             throw new IOException("Failed to Log into the FTP server bc the credentials did not work");
         }
         client.setBufferSize(this.bufferSize);
-        client.setFileTransferMode(FTPClient.BLOCK_TRANSFER_MODE);
+//        client.setFileTransferMode(FTPClient.BLOCK_TRANSFER_MODE);
         client.setFileType(FTPClient.BINARY_FILE_TYPE);
         client.setAutodetectUTF8(true);
-        client.enterLocalPassiveMode();
+//        client.enterLocalPassiveMode();
         client.setControlKeepAliveTimeout(300);
         this.connectionPool.add(client);
     }

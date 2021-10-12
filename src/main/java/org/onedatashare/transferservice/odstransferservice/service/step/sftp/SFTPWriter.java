@@ -56,8 +56,9 @@ public class SFTPWriter implements ItemWriter<DataChunk>, SetPool {
 
     public void establishChannel(String stepName){
         try {
-            ChannelSftp channelSftp = SftpUtility.createConnection(jsch, destCred);
+            ChannelSftp channelSftp = (ChannelSftp) this.session.openChannel("sftp");
             assert channelSftp != null;
+            channelSftp.connect();
             if(!cdIntoDir(channelSftp, dBasePath)){
                 SftpUtility.mkdir(channelSftp, dBasePath);
             }
@@ -78,21 +79,23 @@ public class SFTPWriter implements ItemWriter<DataChunk>, SetPool {
         return false;
     }
 
-    public OutputStream getStream(String stepName) {
+    public OutputStream getStream(String fileName) {
         boolean appendMode = false;
-        if(!fileToChannel.containsKey(stepName)){
-            establishChannel(stepName);
-        }else if(fileToChannel.get(stepName).isClosed() || !fileToChannel.get(stepName).isConnected()){
-            fileToChannel.remove(stepName);
+        ChannelSftp channelSftp = fileToChannel.get(fileName);
+        if(channelSftp == null){
+            establishChannel(fileName);
+            channelSftp = fileToChannel.get(fileName);
+        }else if(channelSftp.isConnected() || !channelSftp.isConnected()){
+            fileToChannel.remove(fileName);
             appendMode = true;
-            establishChannel(stepName);
+            establishChannel(fileName);
+            channelSftp = fileToChannel.get(fileName);
         }
-        ChannelSftp channelSftp = this.fileToChannel.get(stepName);
         try {
             if(appendMode){
-                return channelSftp.put(stepName, ChannelSftp.APPEND);
+                return channelSftp.put(fileName, ChannelSftp.APPEND);
             }
-            return channelSftp.put(stepName, ChannelSftp.OVERWRITE);
+            return channelSftp.put(fileName, ChannelSftp.OVERWRITE);
         } catch (SftpException sftpException) {
             logger.warn("We failed getting the OuputStream to a file :(");
             sftpException.printStackTrace();

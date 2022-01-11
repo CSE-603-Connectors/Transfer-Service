@@ -5,19 +5,17 @@ import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.InputStreamRequestEntity;
 import org.apache.commons.httpclient.methods.PutMethod;
 import org.apache.commons.httpclient.methods.RequestEntity;
-import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
-import org.apache.jackrabbit.webdav.DavMethods;
-import org.apache.jackrabbit.webdav.DavMethods.*;
-import org.apache.jackrabbit.webdav.property.*;
+import org.apache.commons.pool2.ObjectPool;
 import org.onedatashare.transferservice.odstransferservice.constant.ODSConstants;
 import org.onedatashare.transferservice.odstransferservice.model.DataChunk;
 import org.onedatashare.transferservice.odstransferservice.model.credential.AccountEndpointCredential;
+import org.onedatashare.transferservice.odstransferservice.pools.HttpConnectionPool;
+import org.onedatashare.transferservice.odstransferservice.pools.WebDavConnectionPool;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.annotation.AfterStep;
 import org.springframework.batch.core.annotation.BeforeStep;
 import org.springframework.batch.item.ItemWriter;
-import org.apache.jackrabbit.webdav.client.methods.HttpProppatch;
 
 import java.io.FileInputStream;
 import java.nio.file.*;
@@ -36,6 +34,7 @@ public class HttpWriter implements ItemWriter<DataChunk> {
     String destPath;
     Path filePath;
     HttpClient client;
+    WebDavConnectionPool webDavConnectionPool;
 
 
 
@@ -50,20 +49,13 @@ public class HttpWriter implements ItemWriter<DataChunk> {
         this.filePath = Paths.get(this.destPath);
     }
 
-    public void initClient(URI uri) {
-        HostConfiguration hostConfig = new HostConfiguration();
-        hostConfig.setHost(uri);
-        client = new HttpClient();
-        Credentials creds = new UsernamePasswordCredentials(destCredential.getUsername(), destCredential.getSecret());
-        client.getState().setCredentials(AuthScope.ANY, creds);
-    }
-
     @AfterStep
     public void afterStep(){
     }
 
     @Override
     public void write(List<? extends DataChunk> items) throws Exception {
+        HttpClient client = this.webDavConnectionPool.borrowObject();
         PutMethod put = new PutMethod("webdav url");
         for(DataChunk item: items) {
             RequestEntity requestEntity =  new InputStreamRequestEntity(new FileInputStream(Arrays.toString(item.getData())));
@@ -74,5 +66,9 @@ public class HttpWriter implements ItemWriter<DataChunk> {
         if (this.destPath == null) {
 //            this.destPath
         }
+    }
+
+    public void setPool(ObjectPool connectionPool) {
+        this.webDavConnectionPool = (WebDavConnectionPool) connectionPool;
     }
 }

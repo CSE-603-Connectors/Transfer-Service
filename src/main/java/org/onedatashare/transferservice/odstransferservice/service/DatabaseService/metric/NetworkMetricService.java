@@ -11,5 +11,8 @@ import java.util.List;
 public interface NetworkMetricService {
     NetworkMetric saveOrUpdate(NetworkMetric networkMetric);
 
+    NetworkMetric save(NetworkMetric networkMetric);
+
+
     List<NetworkMetric> find();
 }

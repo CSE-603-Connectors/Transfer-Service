@@ -9,11 +9,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
+
 import java.util.List;
+import java.util.Optional;
+
 /**
  * @author deepika
  */
 @Service
+@EnableTransactionManagement
 public class NetworkMetricServiceImpl implements NetworkMetricService {
 
     public static final String SINGLE_QUOTE = "'";
@@ -54,10 +59,15 @@ public class NetworkMetricServiceImpl implements NetworkMetricService {
     }
 
     @Override
+    public NetworkMetric save(NetworkMetric networkMetric) {
+        return repository.save(networkMetric);
+    }
+
+    @Override
     public List<NetworkMetric> find() {
-        List<NetworkMetric> result = repository.findAll();
+        Optional<NetworkMetric> result = repository.findById(3L);
         Gson gson = new Gson();
-        logger.info(gson.toJson(result));
-        return result;
+        logger.info(gson.toJson(result.isPresent()?result.get():""));
+        return null;
     }
 }

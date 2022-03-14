@@ -47,7 +47,7 @@ public class MetricsCollector {
      * 2. Read file
      * 3. Push to db
      */
-    @Scheduled(cron = "0 0/1 * * * *")
+    //@Scheduled(cron = "0 0/1 * * * *")
     public void collectAndSave() {
         try {
             log.info("Starting cron");
@@ -82,8 +82,8 @@ public class MetricsCollector {
         cmdLine.addArgument("eth0");
         cmdLine.addArgument("-K");
         cmdLine.addArgument("-N");
-        cmdLine.addArgument("-t");
-
+//        cmdLine.addArgument("-t");
+        log.info("cmd: " + cmdLine);
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         PumpStreamHandler streamHandler = new PumpStreamHandler(outputStream);
 

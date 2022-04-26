@@ -11,6 +11,7 @@ import org.onedatashare.transferservice.odstransferservice.service.cron.MetricsC
 import org.onedatashare.transferservice.odstransferservice.service.listner.JobCompletionListener;
 import org.onedatashare.transferservice.odstransferservice.service.step.AmazonS3.AmazonS3Reader;
 import org.onedatashare.transferservice.odstransferservice.service.step.AmazonS3.AmazonS3Writer;
+import org.onedatashare.transferservice.odstransferservice.service.step.OptimizerListener;
 import org.onedatashare.transferservice.odstransferservice.service.step.box.BoxReader;
 import org.onedatashare.transferservice.odstransferservice.service.step.box.BoxWriterLargeFile;
 import org.onedatashare.transferservice.odstransferservice.service.step.box.BoxWriterSmallFile;
@@ -30,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.DefaultBatchConfigurer;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
@@ -49,6 +51,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -73,14 +76,22 @@ public class JobControl extends DefaultBatchConfigurer {
     private ApplicationThreadPoolConfig threadPoolConfig;
 
     @Autowired
+    private ThreadPoolTaskExecutor stepExecutor;
+
+    @Autowired
+    private ThreadPoolTaskExecutor parallelExecutor;
+
+    @Autowired
+    private ThreadPoolTaskExecutor sequentialExecutor;
+
+    @Autowired
+    private OptimizerListener optimizerListener;
+
+    @Autowired
     DataSourceConfig datasource;
 
     public TransferJobRequest request;
-    Step parent;
     Logger logger = LoggerFactory.getLogger(JobControl.class);
-
-    @Autowired
-    private ApplicationContext context;
 
     @Autowired
     JobBuilderFactory jobBuilderFactory;
@@ -113,7 +124,7 @@ public class JobControl extends DefaultBatchConfigurer {
     public JobLauncher asyncJobLauncher() {
         SimpleJobLauncher jobLauncher = new SimpleJobLauncher();
         jobLauncher.setJobRepository(this.createJobRepository());
-        jobLauncher.setTaskExecutor(this.threadPoolConfig.sequentialThreadPool());
+        jobLauncher.setTaskExecutor(this.sequentialExecutor);
         logger.info("Job launcher for the transfer controller has a thread pool");
         return jobLauncher;
     }
@@ -143,9 +154,11 @@ public class JobControl extends DefaultBatchConfigurer {
             SimpleStepBuilder<DataChunk, DataChunk> child = stepBuilderFactory.get(idForStep).<DataChunk, DataChunk>chunk(this.request.getOptions().getPipeSize());
             if(ODSUtility.fullyOptimizableProtocols.contains(this.request.getSource().getType()) && ODSUtility.fullyOptimizableProtocols.contains(this.request.getDestination().getType()) && this.request.getOptions().getParallelThreadCount() > 1){
                 threadPoolConfig.setParallelThreadPoolSize(request.getOptions().getParallelThreadCount());
-                child.taskExecutor(this.threadPoolConfig.parallelThreadPool());
+                child.taskExecutor(this.parallelExecutor);
             }
-            child.reader(getRightReader(request.getSource().getType(), file)).writer(getRightWriter(request.getDestination().getType(), file));
+            child.reader(getRightReader(request.getSource().getType(), file))
+                    .writer(getRightWriter(request.getDestination().getType(), file))
+            .listener((StepExecutionListener) optimizerListener); //https://stackoverflow.com/questions/56974573/how-to-combine-multiple-listeners-step-read-process-write-and-skip-in-sprin
             flows.add(new FlowBuilder<Flow>(id + basePath).start(child.build()).build());
         }
         return flows;
@@ -237,12 +250,12 @@ public class JobControl extends DefaultBatchConfigurer {
         return null;
     }
 
-    public Job concurrentJobDefinition() throws MalformedURLException {
+    public Job concurrentJobDefinition() {
         connectionBag.preparePools(this.request);
         List<Flow> flows = createConcurrentFlow(request.getSource().getInfoList(), request.getSource().getParentInfo().getPath(), request.getJobId());
         Flow[] fl = new Flow[flows.size()];
         threadPoolConfig.setSTEP_POOL_SIZE(this.request.getOptions().getConcurrencyThreadCount());
-        Flow f = new FlowBuilder<SimpleFlow>("splitFlow").split(this.threadPoolConfig.stepTaskExecutor()).add(flows.toArray(fl))
+        Flow f = new FlowBuilder<SimpleFlow>("splitFlow").split(this.stepExecutor).add(flows.toArray(fl))
                 .build();
         return jobBuilderFactory.get(request.getOwnerId()).listener(jobCompletionListener)
                 .incrementer(new RunIdIncrementer()).start(f).build().build();

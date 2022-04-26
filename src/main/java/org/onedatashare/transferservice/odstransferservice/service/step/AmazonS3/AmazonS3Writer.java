@@ -68,7 +68,7 @@ public class AmazonS3Writer implements ItemWriter<DataChunk> {
     }
 
     public void prepareS3Transfer(String fileName) {
-        if(!this.firstPass){
+        if (!this.firstPass) {
             this.client = createClientWithCreds();
             this.s3URI = new AmazonS3URI(S3Utility.constructS3URI(this.destCredential.getUri(), fileName, destBasepath));//for aws the step name will be the file key.
             if (this.currentFileSize < FIVE_MB) {
@@ -119,7 +119,7 @@ public class AmazonS3Writer implements ItemWriter<DataChunk> {
         if (this.multipartUpload) {
             this.metaData.completeMultipartUpload(client);
             this.metaData.reset();
-        }else{
+        } else {
             this.singlePutRequestMetaData.clear();
         }
         metricsCollector.calculateThroughputAndSave(stepExecution, BYTES_WRITTEN, currentFileSize);

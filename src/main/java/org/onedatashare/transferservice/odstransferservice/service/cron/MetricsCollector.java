@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
+
 import static org.onedatashare.transferservice.odstransferservice.constant.ODSConstants.*;
 
 /**
@@ -42,20 +43,19 @@ public class MetricsCollector {
     private NetworkMetricsInfluxRepository repo;
 
     /**
-     *  Job controller which executes the cli script based on the configured cron expression,
-     *  maps and pushes the data in influx
-     *
+     * Job controller which executes the cli script based on the configured cron expression,
+     * maps and pushes the data in influx
+     * <p>
      * 1. Execute pmeter script
      * 2. Read file
      * 3. Push to db
-     *
      */
     @Scheduled(cron = "${pmeter.cron.expression}")
     @SneakyThrows
     public void collectAndSave() {
         networkMetricService.executeScript();
         NetworkMetric networkMetric = networkMetricService.readFile();
-        if(networkMetric==null){
+        if (networkMetric == null) {
             throw new Exception("networkMetric must not be null");
         }
         DataInflux dataInflux = networkMetricService.mapData(networkMetric);
@@ -63,10 +63,10 @@ public class MetricsCollector {
     }
 
     @SneakyThrows
-    public void collectJobMetrics(JobMetric jobMetric){
+    public void collectJobMetrics(JobMetric jobMetric) {
         networkMetricService.executeScript();
         NetworkMetric networkMetric = networkMetricService.readFile();
-        if(networkMetric==null){
+        if (networkMetric == null) {
             throw new Exception("networkMetric must not be null");
         }
         networkMetric.setJobData(jobMetric);
@@ -74,7 +74,7 @@ public class MetricsCollector {
         repo.insertDataPoints(dataInflux);
     }
 
-    public JobMetric populateJobMetric(JobExecution jobExecution, StepExecution stepExecution){
+    public JobMetric populateJobMetric(JobExecution jobExecution, StepExecution stepExecution) {
         JobParameters jobParameters = jobExecution.getJobParameters();
         JobMetric jobMetric = new JobMetric();
         jobMetric.setJobId(jobExecution.getJobId().toString());
@@ -82,38 +82,38 @@ public class MetricsCollector {
         jobMetric.setParallelism(jobParameters.getLong(PARALLELISM));
         jobMetric.setPipelining(jobParameters.getLong(PIPELINING));
         jobMetric.setOwnerId(jobParameters.getString(APP_NAME));
-        if(stepExecution==null) {
+        if (stepExecution == null) {
             long jobCompletionTime = Duration.between(jobExecution.getStartTime().toInstant(), jobExecution.getEndTime().toInstant()).toMillis();
-            long size =  jobParameters.getLong(JOB_SIZE, Long.valueOf(0));
+            long size = jobParameters.getLong(JOB_SIZE, Long.valueOf(0));
             double throughput = (double) size / jobCompletionTime;
             log.info("total: " + size + " duration: " + jobCompletionTime);
             log.info("Job throughput (bytes/ms): " + throughput);
             jobMetric.setThroughput(throughput);
-        }else{
+        } else {
             long duration = Duration.between(jobExecution.getStartTime().toInstant(), Instant.now()).toMillis();
             AtomicLong currentRead = (AtomicLong) stepExecution.getExecutionContext().get(ODSConstants.BYTES_READ);
             AtomicLong currentWrite = (AtomicLong) stepExecution.getExecutionContext().get(ODSConstants.BYTES_WRITTEN);
-            if(currentRead == null) currentRead = new AtomicLong(0l);
-            if(currentWrite == null) currentWrite = new AtomicLong(0l);
+            if (currentRead == null) currentRead = new AtomicLong(0l);
+            if (currentWrite == null) currentWrite = new AtomicLong(0l);
             log.info("read: " + currentRead + " duration: " + duration);
             log.info("write: " + currentWrite + " duration: " + duration);
-            double throughput = (currentRead.doubleValue() + currentWrite.doubleValue())/duration;
-            throughput = Math.floor(throughput  * 100) / 100;
+            double throughput = (currentRead.doubleValue() + currentWrite.doubleValue()) / duration;
+            throughput = Math.floor(throughput * 100) / 100;
             jobMetric.setThroughput(throughput);
         }
         log.info("Job metric: " + jobMetric);
         return jobMetric;
     }
 
-    public void setBytes(StepExecution stepExecution, String key, Long bytesToAdd){
+    public void setBytes(StepExecution stepExecution, String key, Long bytesToAdd) {
         AtomicLong currentTp = (AtomicLong) stepExecution.getExecutionContext().get(key);
-        if(currentTp == null) currentTp = new AtomicLong(0l);
+        if (currentTp == null) currentTp = new AtomicLong(0l);
         else currentTp = new AtomicLong(currentTp.addAndGet(bytesToAdd));
         log.info("setting " + key + " : " + currentTp);
         stepExecution.getExecutionContext().put(key, currentTp);
     }
 
-    public void calculateThroughputAndSave(StepExecution stepExecution, String key, Long bytes){
+    public void calculateThroughputAndSave(StepExecution stepExecution, String key, Long bytes) {
         setBytes(stepExecution, key, Long.valueOf(bytes));
         JobMetric jobMetric = populateJobMetric(stepExecution.getJobExecution(), stepExecution);
         collectJobMetrics(jobMetric);

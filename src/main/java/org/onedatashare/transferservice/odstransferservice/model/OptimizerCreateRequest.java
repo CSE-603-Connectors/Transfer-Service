@@ -3,7 +3,7 @@ package org.onedatashare.transferservice.odstransferservice.model;
 import lombok.Data;
 
 @Data
-public class OptimizerCreateReqeust extends Optimizer{
+public class OptimizerCreateRequest {
     String nodeId;
     int maxConcurrency;
     int maxParallelism;

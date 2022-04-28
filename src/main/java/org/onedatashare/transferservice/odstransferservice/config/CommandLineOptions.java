@@ -17,6 +17,9 @@ public class CommandLineOptions {
     @Value("${cmdLine.length}")
     private String length;
 
+    @Value("${cmdLine.measure}")
+    private String measure;
+
     @Value("${cmdLine.options}")
     private String options;
 

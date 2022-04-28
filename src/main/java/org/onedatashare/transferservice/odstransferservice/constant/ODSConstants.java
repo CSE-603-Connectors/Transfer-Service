@@ -51,12 +51,14 @@ public class ODSConstants {
     public static final String BYTES_READ ="bytesRead";
     public static final String BYTES_WRITTEN="bytesWritten";
     public static final String APP_NAME="appName";
+    public static final String PMETER_TEMP_REPORT = "pmeter_measure_temp.txt";
+    public static final String SINGLE_QUOTE = "'";
+    public static final String TIMESTAMP_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
+    public static long bytesSentOld = 0;
+    public static long bytesReceivedOld = 0;
 
-    public interface PMeterConstants {
-        String PMETER_SCRIPT_PATH = System.getenv("PMETER_HOME") + "src/pmeter/pmeter_cli.py";
-        String PMETER_REPORT_PATH = System.getenv("HOME") + "/.pmeter/pmeter_measure.txt";
-        String PMETER_TEMP_REPORT = "pmeter_measure_temp.txt";
-    }
+    public static long packetsSentOld = 0;
+    public static long packetsReceivedOld = 0;
 
 }

@@ -19,7 +19,6 @@ import org.springframework.util.ClassUtils;
 import java.io.ByteArrayOutputStream;
 
 import static org.onedatashare.transferservice.odstransferservice.constant.ODSConstants.BYTES_READ;
-import static org.onedatashare.transferservice.odstransferservice.constant.ODSConstants.SIXTYFOUR_KB;
 
 public class BoxReader extends AbstractItemCountingItemStreamItemReader<DataChunk> {
 
@@ -32,7 +31,7 @@ public class BoxReader extends AbstractItemCountingItemStreamItemReader<DataChun
     StepExecution stepExecution;
     MetricsCollector metricsCollector;
 
-    public BoxReader(OAuthEndpointCredential credential, EntityInfo fileInfo){
+    public BoxReader(OAuthEndpointCredential credential, EntityInfo fileInfo) {
         this.credential = credential;
         this.setName(ClassUtils.getShortName(BoxReader.class));
         filePartitioner = new FilePartitioner(fileInfo.getChunkSize());
@@ -41,6 +40,7 @@ public class BoxReader extends AbstractItemCountingItemStreamItemReader<DataChun
 
     /**
      * This gets called before every single step executes and every step represents a single file fyi
+     *
      * @param stepExecution
      */
     @BeforeStep
@@ -48,11 +48,11 @@ public class BoxReader extends AbstractItemCountingItemStreamItemReader<DataChun
         filePartitioner.createParts(this.fileInfo.getSize(), this.fileInfo.getId());
         this.stepExecution = stepExecution;
         metricsCollector.calculateThroughputAndSave(stepExecution, BYTES_READ, 0L);
-
     }
 
     /**
      * Read in those chunks
+     *
      * @return
      */
     @Override
@@ -69,6 +69,7 @@ public class BoxReader extends AbstractItemCountingItemStreamItemReader<DataChun
 
     /**
      * Open your connections, and get your streams
+     *
      * @throws Exception
      */
     @Override
@@ -79,6 +80,7 @@ public class BoxReader extends AbstractItemCountingItemStreamItemReader<DataChun
 
     /**
      * Close your connection and destroy any clients used
+     *
      * @throws Exception
      */
     @Override

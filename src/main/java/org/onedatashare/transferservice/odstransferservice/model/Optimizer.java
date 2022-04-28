@@ -1,9 +1,10 @@
 package org.onedatashare.transferservice.odstransferservice.model;
 
-import lombok.Data;
+
+import lombok.*;
 
 @Data
-public abstract class Optimizer {
+public class Optimizer {
     int concurrency;
     int parallelism;
     int pipelining;

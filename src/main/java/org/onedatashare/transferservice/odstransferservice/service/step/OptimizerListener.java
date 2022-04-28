@@ -4,17 +4,19 @@ import org.onedatashare.transferservice.odstransferservice.model.DataChunk;
 import org.onedatashare.transferservice.odstransferservice.model.Optimizer;
 import org.onedatashare.transferservice.odstransferservice.model.OptimizerInputRequest;
 import org.onedatashare.transferservice.odstransferservice.service.OptimizerService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.DoubleSummaryStatistics;
 import java.util.List;
 
-@Component
+@Service
 public class OptimizerListener implements ItemWriteListener<DataChunk>, ItemReadListener<DataChunk>, StepExecutionListener, Runnable {
 
     @Lazy
@@ -28,6 +30,8 @@ public class OptimizerListener implements ItemWriteListener<DataChunk>, ItemRead
     @Lazy
     @Autowired
     private ThreadPoolTaskExecutor stepExecutor;
+
+    Logger logger = LoggerFactory.getLogger(OptimizerListener.class);
 
 
     @Value("${spring.application.name}")
@@ -58,6 +62,11 @@ public class OptimizerListener implements ItemWriteListener<DataChunk>, ItemRead
     }
 
     @Override
+    public void beforeStep(StepExecution stepExecution) {
+        this.stepExecution = stepExecution;
+    }
+
+    @Override
     public void afterWrite(List<? extends DataChunk> items) {
         writerEndTime = System.nanoTime();
         long totalTime = writerEndTime - readerStartTime;
@@ -76,6 +85,25 @@ public class OptimizerListener implements ItemWriteListener<DataChunk>, ItemRead
     }
 
     @Override
+    public void run() {
+        this.inputRequest.setThroughput(this.throughputStat.getAverage());
+        this.inputRequest.setConcurrency(this.stepExecutor.getPoolSize());
+        this.inputRequest.setParallelism(this.parallelExecutor.getPoolSize());
+        this.inputRequest.setNodeId(this.appName);
+        this.inputRequest.setPipelining(this.pipelining); //this is the commit interval of a step
+        this.inputRequest.setChunkSize(this.chunkSize); //We need to get this from the
+        Optimizer newParams = this.optimizerService.inputToOptimizerBlocking(this.inputRequest);
+        logger.info(newParams.toString());
+        int parallelismVal = newParams.getParallelism();
+        int concurrencyVal = newParams.getConcurrency();
+        this.parallelExecutor.setMaxPoolSize(parallelismVal);
+        this.parallelExecutor.setCorePoolSize(parallelismVal);
+        this.stepExecutor.setCorePoolSize(concurrencyVal);
+        this.stepExecutor.setMaxPoolSize(concurrencyVal);
+        this.stepExecution.setCommitCount(newParams.getPipelining());
+    }
+
+    @Override
     public void beforeWrite(List<? extends DataChunk> items) {
     }
 
@@ -88,30 +116,7 @@ public class OptimizerListener implements ItemWriteListener<DataChunk>, ItemRead
     }
 
     @Override
-    public void beforeStep(StepExecution stepExecution) {
-        this.stepExecution = stepExecution;
-    }
-
-    @Override
     public ExitStatus afterStep(StepExecution stepExecution) {
         return null;
-    }
-
-    @Override
-    public void run() {
-        this.inputRequest.setThroughput(this.throughputStat.getAverage());
-        this.inputRequest.setConcurrency(this.stepExecutor.getPoolSize());
-        this.inputRequest.setParallelism(this.parallelExecutor.getPoolSize());
-        this.inputRequest.setNodeId(this.appName);
-        this.inputRequest.setPipelining(this.pipelining); //this is the commit interval of a step.
-        this.inputRequest.setChunkSize(this.chunkSize); //We need to get this from the
-        Optimizer newParams = this.optimizerService.inputToOptimizerBlocking(this.inputRequest);
-        int parallelismVal = newParams.getParallelism();
-        int concurrencyVal = newParams.getConcurrency();
-        this.parallelExecutor.setMaxPoolSize(parallelismVal);
-        this.parallelExecutor.setCorePoolSize(parallelismVal);
-        this.stepExecutor.setCorePoolSize(concurrencyVal);
-        this.stepExecutor.setMaxPoolSize(concurrencyVal);
-        this.stepExecution.setCommitCount(newParams.getPipelining());
     }
 }

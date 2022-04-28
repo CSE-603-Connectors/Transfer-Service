@@ -1,9 +1,7 @@
 package org.onedatashare.transferservice.odstransferservice.service.listner;
 
-import com.netflix.discovery.converters.Auto;
 import org.onedatashare.transferservice.odstransferservice.model.JobMetric;
-import org.onedatashare.transferservice.odstransferservice.model.Optimizer;
-import org.onedatashare.transferservice.odstransferservice.model.OptimizerCreateReqeust;
+import org.onedatashare.transferservice.odstransferservice.model.OptimizerCreateRequest;
 import org.onedatashare.transferservice.odstransferservice.model.OptimizerDeleteRequest;
 import org.onedatashare.transferservice.odstransferservice.service.ConnectionBag;
 import org.onedatashare.transferservice.odstransferservice.service.OptimizerService;
@@ -51,8 +49,12 @@ public class JobCompletionListener extends JobExecutionListenerSupport {
     @Override
     public void beforeJob(JobExecution jobExecution) {
         logger.info("BEFOR JOB-------------------present time--" + System.currentTimeMillis());
-        OptimizerCreateReqeust createReqeust = new OptimizerCreateReqeust();
+        OptimizerCreateRequest createReqeust = new OptimizerCreateRequest();
         createReqeust.setNodeId(appName);
+        createReqeust.setMaxChunkSize(Integer.MAX_VALUE);
+        createReqeust.setMaxConcurrency(32);
+        createReqeust.setMaxParallelism(20);
+        createReqeust.setMaxPipelining(100);
         optimizerService.createOptimizerBlocking(createReqeust);
         this.scheduledFuture = taskScheduler.scheduleAtFixedRate(optimizerListener, interval);
 

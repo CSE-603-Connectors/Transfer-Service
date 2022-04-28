@@ -1,0 +1,48 @@
+Bootstrap: docker
+From: ubuntu:latest
+
+%pre
+
+%setup
+
+
+%post
+    apt-get update
+    apt --assume-yes install openjdk-11-jdk maven
+    git clone https://github.com/didclab/Transfer-Service.git
+    git clone https://github.com/CSE-603-Connectors/pmeter.git
+
+    mvn clean package -DskipTests
+    java -jar target/ods-transfer-service-0.0.1-SNAPSHOT.jar
+
+%test
+    exit 0
+
+%runscript
+    java -jar /home/app/target/ods-transfer-service-0.0.1-SNAPSHOT.jar
+
+%startscript
+
+%labels
+    OneDataShare
+
+%files
+
+%environment
+    export PORT=8092
+    export EUREKA_USER
+    export EUREKA_PASS
+    export EUREKA_URI
+    export COCKROACH_URI
+    export APP_NAME
+    export RMQ_ADDRESS
+    export AMPQ_PORT
+    export AMPQ_USER
+    export AMPQ_PWD
+    export INFLUX_TOKEN
+    export INFLUX_ORG
+    export INTERFACE
+    export USER_NAME
+
+
+%help

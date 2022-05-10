@@ -27,10 +27,14 @@ public class InfluxCache {
         jobMetric.setStepExecution(stepExecution);
         jobMetric.setPipelining(size);
         jobMetric.setConcurrency(threadPoolManager.concurrencyCount());
-        jobMetric.setParallelism(threadPoolManager.parallelismCount());
+        jobMetric.setParallelism(threadPoolManager.parallelismCount(stepExecution.getStepName()));
         jobMetric.setJobId(stepExecution.getJobExecutionId().toString());
         jobMetric.setOwnerId(stepExecution.getJobExecution().getJobParameters().getString(OWNER_ID));
         this.threadCache.add(jobMetric);
+    }
+
+    public int cacheSize(){
+        return this.threadCache.size();
     }
 
     public void clearCache() {

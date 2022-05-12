@@ -6,6 +6,7 @@ import lombok.Setter;
 import lombok.SneakyThrows;
 import org.onedatashare.transferservice.odstransferservice.Enum.EndpointType;
 import org.onedatashare.transferservice.odstransferservice.config.DataSourceConfig;
+import org.onedatashare.transferservice.odstransferservice.constant.ODSConstants;
 import org.onedatashare.transferservice.odstransferservice.model.DataChunk;
 import org.onedatashare.transferservice.odstransferservice.model.EntityInfo;
 import org.onedatashare.transferservice.odstransferservice.model.TransferJobRequest;
@@ -56,6 +57,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -165,6 +169,16 @@ public class JobControl extends DefaultBatchConfigurer {
                 hr.setPool(connectionBag.getHttpReaderPool());
                 return hr;
             case vfs:
+                if (fileInfo.getSize() < 1) {
+                    Path filePath = Paths.get(this.request.getSource().getParentInfo().getPath(), fileInfo.getPath());
+                    File file = filePath.toFile();
+                    if (file.exists()) {
+                        fileInfo.setSize(file.length());
+                    }
+                }
+                if (fileInfo.getChunkSize() < 1) {
+                    fileInfo.setChunkSize(ODSConstants.FIVE_MB);
+                }
                 VfsReader vfsReader = new VfsReader(request.getSource().getVfsSourceCredential(), fileInfo);
                 return vfsReader;
             case sftp:
